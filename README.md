@@ -8,24 +8,24 @@ The project integrates a modern React frontend utilizing Tailwind CSS v4 and Luc
 
 ## Key Features
 
-1. **🔒 Secure User Authentication & Protected Routes**:
+1. ** Secure User Authentication & Protected Routes**:
    - Register email accounts, select your academic institution, and declare your major.
    - Secure token-based user login powered by JWT encryption and bcrypt password hashing.
    - Protected client-side routing; unauthorized portal access automatically intercepts and redirects users to sign in.
-2. **📚 Past Papers Archive & Search Engine**:
+2. ** Past Papers Archive & Search Engine**:
    - Access comprehensive syllabus resource records fetched dynamically from MongoDB.
    - Full-text search filters across module codes, course titles, and instructors.
    - Interactive dropdown filters for department, course, exam year, and semester terms.
    - Automated download counter tracking incremented in the database.
-3. **🤖 Scholar Assistant (AI Study Assistant)**:
+3. ** Scholar Assistant (AI Study Assistant)**:
    - Persistent chat session logs saved in MongoDB.
    - Interactive suggestions panel with prompt pre-loads.
    - Contextual mock AI responses answering questions about file uploads and licensing.
    - Message limit counter and progress stats tracking.
-4. **📝 Quick Notes Pad**:
+4. **Quick Notes Pad**:
    - Create, retrieve, and delete study notes dynamically from the main dashboard.
    - Full note content persists in MongoDB and links directly to the authenticated user profile.
-5. **✨ Premium Visual Polish**:
+5. ** Premium Visual Polish**:
    - High-contrast typography featuring Outfit and Poppins fonts.
    - Sleek deep green brand color theme (`#004D40`) with balanced contrast, visual alerts, and hover effects.
    - Real-time animated checking toast notifications validating downloads, notes, and bookmark actions.
