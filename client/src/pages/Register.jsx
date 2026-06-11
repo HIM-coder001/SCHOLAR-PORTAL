@@ -15,7 +15,7 @@ const Register = () => {
   });
   const [regError, setRegError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.agreed) return;
     if (!formData.email.includes("@")) {
@@ -27,9 +27,37 @@ const Register = () => {
       return;
     }
 
-    // Simulate successful registration
-    localStorage.setItem("isAuthenticated", "true");
-    setRegError("");
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setRegError(data.message || "Registration failed.");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setRegError("");
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      console.error("Register Error:", error);
+      setRegError("Network connection error connecting to server.");
+    }
+  };
+
+  const handleSocialRegister = () => {
+    localStorage.setItem("token", "mock-social-token-key-12345");
+    localStorage.setItem("user", JSON.stringify({
+      fullName: "Alex Rivers",
+      email: "alex.rivers@university.edu",
+      institution: "Stanford University",
+      course: "Computer Science"
+    }));
     navigate("/dashboard", { replace: true });
   };
 
@@ -127,10 +155,7 @@ const Register = () => {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <button
                 type="button"
-                onClick={() => {
-                  localStorage.setItem("isAuthenticated", "true");
-                  navigate("/dashboard");
-                }}
+                onClick={handleSocialRegister}
                 className="flex items-center justify-center gap-2.5 border border-gray-200 hover:bg-gray-50 py-3 rounded-2xl text-xs font-bold text-gray-600 bg-white transition cursor-pointer shadow-sm"
               >
                 <svg className="w-4.5 h-4.5" viewBox="0 0 24 24">
@@ -144,10 +169,7 @@ const Register = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  localStorage.setItem("isAuthenticated", "true");
-                  navigate("/dashboard");
-                }}
+                onClick={handleSocialRegister}
                 className="flex items-center justify-center gap-2.5 border border-gray-200 hover:bg-gray-50 py-3 rounded-2xl text-xs font-bold text-gray-600 bg-white transition cursor-pointer shadow-sm"
               >
                 <svg className="w-4.5 h-4.5 fill-currentColor" viewBox="0 0 24 24">
