@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import heroImage from  '../../assets/images/hero_image.png'
 
 const Hero = () => {
@@ -20,13 +21,13 @@ const Hero = () => {
         </p>
 
         <div className="flex gap-4 mt-8">
-          <button className="bg-green-700 hover:bg-green-800 text-white px-8 py-3 rounded-lg font-medium transition">
+          <Link to="/login" className="bg-green-700 hover:bg-green-800 text-white px-8 py-3 rounded-lg font-medium transition block text-center">
             Get Started
-          </button>
+          </Link>
 
-          <button className="border border-green-700 text-green-700 px-8 py-3 rounded-lg font-medium hover:bg-green-50 transition">
+          <Link to="/past-papers" className="border border-green-700 text-green-700 px-8 py-3 rounded-lg font-medium hover:bg-green-50 transition block text-center">
             Explore Resources
-          </button>
+          </Link>
         </div>
       </div>
 

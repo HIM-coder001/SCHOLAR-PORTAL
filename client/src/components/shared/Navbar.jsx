@@ -69,13 +69,13 @@ const Navbar = () => {
         </button>
 
         {/* Avatar */}
-        <button className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200 hover:border-green-700 transition-colors">
+        <Link to="/login" className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200 hover:border-green-700 transition-colors block">
           <img
             src="https://i.pravatar.cc/40?img=47"
             alt="User avatar"
             className="w-full h-full object-cover"
           />
-        </button>
+        </Link>
       </div>
     </nav>
   );
