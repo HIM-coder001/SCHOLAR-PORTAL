@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Search, Mic, Bell } from "lucide-react";
 
-const TopBar = () => {
+const TopBar = ({ searchVal, setSearchVal }) => {
   return (
     <div className="flex items-center gap-4 px-8 py-3.5 bg-white border-b border-gray-100 sticky top-0 z-10 font-sans">
       
@@ -10,6 +10,8 @@ const TopBar = () => {
         <Search size={16} className="text-gray-400 shrink-0" />
         <input
           type="text"
+          value={searchVal || ""}
+          onChange={(e) => setSearchVal && setSearchVal(e.target.value)}
           placeholder="Search course codes, paper titles..."
           className="bg-transparent text-xs text-gray-600 placeholder-gray-400 outline-none w-full font-medium"
         />

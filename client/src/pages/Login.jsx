@@ -14,16 +14,44 @@ const Login = () => {
   // Check if they came from a protected page redirect
   const redirectOrigin = location.state?.from?.pathname || "/dashboard";
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.includes("@")) {
       setAuthError("Please enter a valid university email address.");
       return;
     }
-    
-    // Simulate successful login
-    localStorage.setItem("isAuthenticated", "true");
-    setAuthError("");
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setAuthError(data.message || "Invalid email or password.");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setAuthError("");
+      navigate(redirectOrigin, { replace: true });
+    } catch (error) {
+      console.error("Login Error:", error);
+      setAuthError("Network connection error connecting to server.");
+    }
+  };
+
+  const handleSocialSignIn = () => {
+    localStorage.setItem("token", "mock-social-token-key-12345");
+    localStorage.setItem("user", JSON.stringify({
+      fullName: "Alex Rivers",
+      email: "alex.rivers@university.edu",
+      institution: "Stanford University",
+      course: "Computer Science"
+    }));
     navigate(redirectOrigin, { replace: true });
   };
 
@@ -180,10 +208,7 @@ const Login = () => {
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
-                  onClick={() => {
-                    localStorage.setItem("isAuthenticated", "true");
-                    navigate(redirectOrigin);
-                  }}
+                  onClick={handleSocialSignIn}
                   className="flex items-center justify-center gap-2 border border-gray-200 hover:bg-gray-50 py-3 rounded-2xl text-xs font-bold text-gray-600 transition cursor-pointer bg-white shadow-sm"
                 >
                   <svg className="w-4.5 h-4.5" viewBox="0 0 24 24">
@@ -197,10 +222,7 @@ const Login = () => {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    localStorage.setItem("isAuthenticated", "true");
-                    navigate(redirectOrigin);
-                  }}
+                  onClick={handleSocialSignIn}
                   className="flex items-center justify-center gap-2 border border-gray-200 hover:bg-gray-50 py-3 rounded-2xl text-xs font-bold text-gray-600 transition cursor-pointer bg-white shadow-sm"
                 >
                   <svg className="w-4.5 h-4.5 fill-currentColor" viewBox="0 0 24 24">

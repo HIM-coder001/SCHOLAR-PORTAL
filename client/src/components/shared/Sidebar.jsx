@@ -26,7 +26,8 @@ const Sidebar = () => {
 
   const handleLogout = () => {
     // Clear interactive auth states
-    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   };
 
   return (

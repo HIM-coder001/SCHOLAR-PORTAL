@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/shared/Sidebar";
 import Footer from "../components/shared/Footer";
 import { 
@@ -15,11 +15,20 @@ import {
   BookOpen, 
   FileText, 
   Bookmark,
-  CheckCircle2
+  CheckCircle2,
+  Trash2
 } from "lucide-react";
 
 const Dashboard = () => {
   const [toast, setToast] = useState({ show: false, message: "" });
+  const [papers, setPapers] = useState([]);
+  const [notes, setNotes] = useState([]);
+  const [loadingNotes, setLoadingNotes] = useState(true);
+
+  // Dynamic profile metadata
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const fullName = user.fullName || "Alex Rivers";
+  const userCourse = user.course || "Undergraduate";
 
   const triggerToast = (message) => {
     setToast({ show: true, message });
@@ -29,7 +38,95 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   };
 
-  // Mock data for Recommended section
+  useEffect(() => {
+    fetchPapers();
+    fetchNotes();
+  }, []);
+
+  const fetchPapers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/papers", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPapers(data);
+      }
+    } catch (err) {
+      console.error("Fetch papers error:", err);
+    }
+  };
+
+  const fetchNotes = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/notes", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotes(data);
+      }
+    } catch (err) {
+      console.error("Fetch notes error:", err);
+    } finally {
+      setLoadingNotes(false);
+    }
+  };
+
+  const handleCreateNote = async () => {
+    const title = prompt("Enter Note Title:");
+    if (!title) return;
+    const content = prompt("Enter Note Content (optional):");
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, content: content || "" })
+      });
+
+      if (res.ok) {
+        const newNote = await res.json();
+        setNotes((prev) => [newNote, ...prev]);
+        triggerToast(`Created note: "${title}"`);
+      } else {
+        triggerToast("Failed to create note.");
+      }
+    } catch (err) {
+      console.error("Create note error:", err);
+      triggerToast("Error connecting to server.");
+    }
+  };
+
+  const handleDeleteNote = async (id, title) => {
+    if (!confirm(`Are you sure you want to delete note "${title}"?`)) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/notes/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        setNotes((prev) => prev.filter((n) => n._id !== id));
+        triggerToast(`Deleted note: "${title}"`);
+      } else {
+        triggerToast("Failed to delete note.");
+      }
+    } catch (err) {
+      console.error("Delete note error:", err);
+      triggerToast("Error connecting to server.");
+    }
+  };
+
+  // Static list for recommended cover section (visually matches layout)
   const recommendedItems = [
     {
       category: "RESEARCH JOURNAL",
@@ -62,26 +159,7 @@ const Dashboard = () => {
     },
   ];
 
-  // Mock data for Trending papers
-  const trendingPapers = [
-    {
-      id: "01",
-      title: "Modern Philosophy - Summer 2023",
-      views: "Viewed by 1.2k students this week",
-    },
-    {
-      id: "02",
-      title: "Introduction to Organic Chemistry - Finals",
-      views: "Viewed by 850 students this week",
-    },
-    {
-      id: "03",
-      title: "Applied Statistics for Research",
-      views: "Viewed by 620 students this week",
-    },
-  ];
-
-  // Mock data for downloads
+  // Static downloads tracking
   const downloads = [
     {
       title: "Quantum Physics II.pdf",
@@ -141,16 +219,16 @@ const Dashboard = () => {
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <h4 className="text-sm font-extrabold text-gray-900 font-outfit leading-none">
-                  Alex Rivers
+                  {fullName}
                 </h4>
                 <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-widest leading-none block mt-1">
-                  Undergraduate
+                  {userCourse}
                 </span>
               </div>
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-emerald-600 transition cursor-pointer">
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                  alt="Alex Rivers avatar"
+                  alt="Avatar"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -168,7 +246,7 @@ const Dashboard = () => {
                 Academic Hub
               </h1>
               <p className="text-sm text-gray-500 font-bold">
-                Welcome back, Alex. You have <span className="text-emerald-700 font-black">3 pending assignments</span> and <span className="text-emerald-700 font-black">4 new resources</span> recommended for your 'Advanced Psychology' track.
+                Welcome back, {fullName.split(" ")[0]}. You have <span className="text-emerald-700 font-black">3 pending assignments</span> and <span className="text-emerald-700 font-black">{papers.length} resource papers</span> logged in the library.
               </p>
             </div>
             
@@ -318,29 +396,29 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Trending Past Papers list */}
+              {/* Trending Past Papers list from DB */}
               <div className="bg-white border border-gray-150 rounded-[28px] p-6">
                 <h3 className="text-sm font-bold text-gray-800 mb-4 font-outfit uppercase tracking-wider">
                   Trending Past Papers
                 </h3>
 
                 <div className="space-y-4">
-                  {trendingPapers.map((paper, i) => (
+                  {papers.filter(p => !p.isFeatured).slice(0, 3).map((paper, i) => (
                     <div 
-                      key={i} 
-                      onClick={() => triggerToast(`Opening "${paper.title}" details...`)}
+                      key={paper._id} 
+                      onClick={() => triggerToast(`Viewing syllabus module for "${paper.title}" (${paper.module})...`)}
                       className="flex items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-emerald-50/15 border border-gray-100 hover:border-emerald-100 transition duration-200 cursor-pointer"
                     >
                       <div className="flex items-center gap-4.5">
                         <span className="text-xl font-black text-emerald-850 font-outfit">
-                          {paper.id}
+                          {`0${i + 1}`}
                         </span>
                         <div>
                           <h4 className="text-xs font-bold text-gray-900">
-                            {paper.title}
+                            {paper.title} - {paper.semester}
                           </h4>
                           <p className="text-[11px] text-gray-400 font-bold mt-0.5">
-                            {paper.views}
+                            Instructed by {paper.instructor} • {paper.downloads + 620} downloads
                           </p>
                         </div>
                       </div>
@@ -350,6 +428,12 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
+
+                  {papers.length === 0 && (
+                    <div className="text-center p-6 bg-gray-50/50 rounded-2xl border border-dashed text-xs text-gray-400 font-bold">
+                      No papers loaded from server database yet.
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -407,55 +491,60 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Recently Added Notes widget */}
+              {/* Recently Added Notes widget (database-driven!) */}
               <div className="bg-white border border-gray-150 rounded-[28px] p-6">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-gray-800 font-outfit mb-4">
                   Recently Added Notes
                 </h3>
 
                 <div className="space-y-3.5">
-                  
-                  {/* Note Card 1 */}
-                  <div 
-                    onClick={() => triggerToast('Viewing Note "Ethical Frameworks"')}
-                    className="bg-[#FAF8F5] border border-amber-200/40 rounded-2xl p-4.5 relative group hover:shadow-md hover:border-amber-200/70 transition cursor-pointer"
-                  >
-                    <span className="text-[10px] font-bold text-gray-400 absolute top-4.5 right-4.5 flex items-center gap-1.5">
-                      <Clock size={11} /> 2h ago
-                    </span>
-                    <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 mb-3.5 border border-amber-200/10">
-                      <FileText size={16} />
-                    </div>
-                    <h4 className="text-sm font-extrabold text-gray-900">
-                      Ethical Frameworks
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-2 leading-relaxed line-clamp-2">
-                      Summary of utilitarianism vs. deontology for final revision module.
-                    </p>
-                  </div>
+                  {loadingNotes ? (
+                    <div className="text-center p-4 text-xs text-gray-400 font-bold">Loading your notes...</div>
+                  ) : (
+                    notes.map((note) => (
+                      <div 
+                        key={note._id}
+                        onClick={() => triggerToast(`Note Content: "${note.content || '(empty note)'}"`)}
+                        className="bg-[#FAF8F5] border border-amber-250/30 rounded-2xl p-4.5 relative group hover:shadow-md hover:border-amber-250/70 transition cursor-pointer"
+                      >
+                        {/* Delete Note button */}
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteNote(note._id, note.title);
+                          }}
+                          className="absolute top-4.5 right-4.5 text-rose-500 opacity-0 group-hover:opacity-100 hover:scale-110 transition p-1 bg-white rounded-lg shadow-sm border border-gray-100"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        
+                        <span className="text-[10px] font-bold text-gray-400 absolute top-4.5 right-4.5 group-hover:hidden flex items-center gap-1.5">
+                          <Clock size={11} /> {new Date(note.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                        </span>
+                        
+                        <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 mb-3.5 border border-amber-200/10">
+                          <FileText size={16} />
+                        </div>
+                        
+                        <h4 className="text-sm font-extrabold text-gray-900 truncate pr-14">
+                          {note.title}
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-2 leading-relaxed line-clamp-2">
+                          {note.content || "Empty Note content."}
+                        </p>
+                      </div>
+                    ))
+                  )}
 
-                  {/* Note Card 2 */}
-                  <div 
-                    onClick={() => triggerToast('Viewing Note "Cellular Mitosis"')}
-                    className="bg-[#FAF8F5] border border-amber-200/40 rounded-2xl p-4.5 relative group hover:shadow-md hover:border-amber-200/70 transition cursor-pointer"
-                  >
-                    <span className="text-[10px] font-bold text-gray-400 absolute top-4.5 right-4.5 flex items-center gap-1.5">
-                      <Clock size={11} /> 5h ago
-                    </span>
-                    <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 mb-3.5 border border-amber-200/10">
-                      <FileText size={16} />
+                  {!loadingNotes && notes.length === 0 && (
+                    <div className="text-center p-6 bg-gray-50/50 rounded-2xl border border-dashed text-xs text-gray-400 font-bold">
+                      No notes created yet.
                     </div>
-                    <h4 className="text-sm font-extrabold text-gray-900">
-                      Cellular Mitosis
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-2 leading-relaxed line-clamp-2">
-                      Key diagrams and mnemonic for prophase, metaphase, anaphase, telophase.
-                    </p>
-                  </div>
+                  )}
 
                   {/* Create Quick Note dotted button */}
                   <button 
-                    onClick={() => triggerToast("Opening quick note editor...")}
+                    onClick={handleCreateNote}
                     className="w-full py-4.5 border-2 border-dashed border-gray-200 hover:border-emerald-600 hover:bg-[#004D40]/5 rounded-2xl flex items-center justify-center gap-2.5 text-xs font-bold text-gray-500 hover:text-emerald-800 transition cursor-pointer"
                   >
                     <Plus size={18} />

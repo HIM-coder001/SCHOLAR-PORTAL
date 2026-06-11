@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react";
 
-const FilterSelect = ({ label, value, options = [] }) => {
+const FilterSelect = ({ label, value, onChange, options = [] }) => {
   const displayOptions = options.length > 0 ? options : [value];
 
   return (
@@ -10,7 +10,11 @@ const FilterSelect = ({ label, value, options = [] }) => {
       </label>
 
       <div className="relative">
-        <select className="w-full bg-[#f8faf8] border border-gray-200/80 rounded-xl px-4 py-3 text-xs font-semibold text-gray-700 appearance-none focus:outline-none focus:border-[#004D40] transition cursor-pointer">
+        <select 
+          value={value}
+          onChange={(e) => onChange && onChange(e.target.value)}
+          className="w-full bg-[#f8faf8] border border-gray-200/80 rounded-xl px-4 py-3 text-xs font-semibold text-gray-700 appearance-none focus:outline-none focus:border-[#004D40] transition cursor-pointer"
+        >
           {displayOptions.map((opt, i) => (
             <option key={i} value={opt}>
               {opt}

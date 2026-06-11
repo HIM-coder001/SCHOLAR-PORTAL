@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/shared/Sidebar";
 import TopBar from "../components/pastpapers/TopBar";
 import PaperCard from "../components/pastpapers/PaperCard";
@@ -8,59 +8,89 @@ import Pagination from "../components/pastpapers/Pagination";
 import Footer from "../components/shared/Footer";
 import { Plus, CheckCircle2 } from "lucide-react";
 
-const papers = [
-  {
-    icon: ">_",
-    iconBg: "bg-emerald-50",
-    color: "text-emerald-800 font-mono text-sm",
-    title: "Data Structures & Algorithms",
-    module: "CS-202",
-    instructor: "Dr. Sarah Jenkins",
-    semester: "2023 Fall",
-  },
-  {
-    icon: "Σ",
-    iconBg: "bg-rose-50",
-    color: "text-rose-600 font-bold",
-    title: "Advanced Engineering Mathematics",
-    module: "MA-305",
-    instructor: "Prof. David Thorne",
-    semester: "2022 Spring",
-  },
-  {
-    icon: "⚗",
-    iconBg: "bg-slate-100",
-    color: "text-slate-500 font-bold",
-    title: "Molecular Biology Fundamentals",
-    module: "BIO-112",
-    instructor: "Dr. Marcus Aurelius",
-    semester: "2023 Fall",
-  },
-];
-
 const PastPapers = () => {
+  const [papers, setPapers] = useState([]);
+  const [searchVal, setSearchVal] = useState("");
+  const [selectedDept, setSelectedDept] = useState("Engineering & Tech");
+  const [selectedCourse, setSelectedCourse] = useState("CS-301 Algorithms");
+  const [selectedYear, setSelectedYear] = useState("2024");
+  const [selectedSemester, setSelectedSemester] = useState("Fall Semester");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTags, setActiveTags] = useState(["2023", "Computer Science"]);
   const [toast, setToast] = useState({ show: false, message: "" });
 
-  const removeTag = (tag) => setActiveTags(activeTags.filter((t) => t !== tag));
+  const removeTag = (tag) => {
+    setActiveTags(activeTags.filter((t) => t !== tag));
+    triggerToast(`Removed "${tag}" filter.`);
+  };
 
   const triggerToast = (message) => {
     setToast({ show: true, message });
-    // Auto-dismiss after 3.5 seconds
     const timer = setTimeout(() => {
       setToast({ show: false, message: "" });
     }, 3500);
     return () => clearTimeout(timer);
   };
 
+  useEffect(() => {
+    fetchPapers();
+  }, [searchVal, selectedDept, selectedCourse, selectedYear, selectedSemester]);
+
+  const fetchPapers = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      const params = new URLSearchParams();
+      if (searchVal) params.append("search", searchVal);
+      if (selectedDept && selectedDept !== "All") params.append("department", selectedDept);
+      if (selectedCourse && selectedCourse !== "All") params.append("course", selectedCourse);
+      if (selectedYear && selectedYear !== "All") params.append("year", selectedYear);
+      if (selectedSemester && selectedSemester !== "All") params.append("semester", selectedSemester);
+
+      const res = await fetch(`/api/papers?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPapers(data);
+      }
+    } catch (err) {
+      console.error("Fetch papers error:", err);
+    }
+  };
+
+  const handleDownload = async (id, title) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/papers/${id}/download`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        triggerToast(`Authorized download. Fetching PDF for "${title}"...`);
+        // Refresh counts
+        fetchPapers();
+      } else {
+        triggerToast("Download authorization failed.");
+      }
+    } catch (err) {
+      console.error("Download error:", err);
+      triggerToast("Error connecting to server.");
+    }
+  };
+
+  // Divide papers into layout rows
+  const standardPapers = papers.filter((p) => !p.isFeatured);
+  const featuredPaper = papers.find((p) => p.isFeatured) || { title: "Macroeconomics: Global Markets Analysis", _id: "mock-id" };
+
   return (
     <div className="min-h-screen bg-[#fcfdfc] flex font-sans text-gray-800">
       <Sidebar />
 
-      {/* Main Content Area (w-64 sidebar => ml-64) */}
+      {/* Main Content Area (ml-64) */}
       <div className="ml-64 flex-1 flex flex-col min-h-screen relative">
-        <TopBar />
+        <TopBar searchVal={searchVal} setSearchVal={setSearchVal} />
 
         <main className="flex-1 px-8 py-8">
           
@@ -91,10 +121,7 @@ const PastPapers = () => {
                 >
                   {tag}
                   <button
-                    onClick={() => {
-                      removeTag(tag);
-                      triggerToast(`Removed "${tag}" filter.`);
-                    }}
+                    onClick={() => removeTag(tag)}
                     className="text-gray-400 hover:text-gray-700 leading-none cursor-pointer font-black text-sm"
                   >
                     ×
@@ -104,58 +131,72 @@ const PastPapers = () => {
             </div>
           </div>
 
-          {/* Filters dropdowns */}
+          {/* Filters Select boxes */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
             <FilterSelect 
               label="Department" 
-              value="Engineering & Tech" 
+              value={selectedDept} 
+              onChange={setSelectedDept}
               options={["Engineering & Tech", "Science & Mathematics", "Business Administration", "Humanities & Arts"]}
             />
             <FilterSelect 
               label="Course" 
-              value="CS-301 Algorithms" 
+              value={selectedCourse} 
+              onChange={setSelectedCourse}
               options={["CS-301 Algorithms", "CS-202 Data Structures", "MA-305 Calculus", "BIO-112 Biology"]}
             />
             <FilterSelect 
               label="Year" 
-              value="2024" 
+              value={selectedYear} 
+              onChange={setSelectedYear}
               options={["2024", "2023", "2022", "2021", "2020"]}
             />
             <FilterSelect 
               label="Semester" 
-              value="Fall Semester" 
+              value={selectedSemester} 
+              onChange={setSelectedSemester}
               options={["Fall Semester", "Spring Semester", "Summer Semester"]}
             />
           </div>
 
           {/* Row 1 — 3 standard cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            {papers.map((p, i) => (
+            {standardPapers.slice(0, 3).map((p) => (
               <PaperCard 
-                key={i} 
+                key={p._id} 
                 {...p} 
-                onDownload={(title) => triggerToast(`Authorized download. Fetching PDF for "${title}"...`)}
+                onDownload={(title) => handleDownload(p._id, title)}
                 onBookmark={(title) => triggerToast(`Saved "${title}" to your Bookmarks.`)}
               />
             ))}
+
+            {standardPapers.length === 0 && (
+              <div className="col-span-3 text-center py-10 bg-gray-50/50 border border-dashed rounded-3xl text-sm font-bold text-gray-400">
+                No past papers found matching the search/filter criteria.
+              </div>
+            )}
           </div>
 
           {/* Row 2 — featured wide card + standard card */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FeaturedCard 
-              onDownload={(title) => triggerToast(`Loading Study Guide for "${title}"...`)}
+              onDownload={(title) => handleDownload(featuredPaper._id, title)}
             />
-            <PaperCard
-              icon="📐"
-              iconBg="bg-emerald-50"
-              color="text-[#004d40] font-black"
-              title="Digital Design Principles"
-              module="DD-201"
-              instructor="Prof. Elena Rossi"
-              semester="2023 Summer"
-              onDownload={(title) => triggerToast(`Authorized download. Fetching PDF for "${title}"...`)}
-              onBookmark={(title) => triggerToast(`Saved "${title}" to your Bookmarks.`)}
-            />
+            
+            {standardPapers.slice(3, 4).map((p) => (
+              <PaperCard
+                key={p._id}
+                {...p}
+                onDownload={(title) => handleDownload(p._id, title)}
+                onBookmark={(title) => triggerToast(`Saved "${title}" to your Bookmarks.`)}
+              />
+            ))}
+
+            {standardPapers.length < 4 && papers.length > 0 && (
+              <div className="bg-white border border-gray-150 rounded-[24px] p-6 flex flex-col justify-center items-center border-dashed text-center text-xs font-bold text-gray-400">
+                End of matches for this archive section.
+              </div>
+            )}
           </div>
 
           {/* Pagination */}

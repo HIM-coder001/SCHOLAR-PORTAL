@@ -13,7 +13,7 @@ import Settings from "./pages/Settings";
 
 // Route guard component
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+  const isAuthenticated = localStorage.getItem("token") !== null;
   const location = useLocation();
 
   if (!isAuthenticated) {
