@@ -1,50 +1,89 @@
-# ScholarHub — Academic Portal
+ # ScholarHub — Academic Portal
 
-ScholarHub is a high-fidelity, database-driven academic portal designed for college students to manage their studies, access a comprehensive past papers archive, organize study notes, and collaborate with an AI research assistant.
+ScholarHub is a modern, database-driven academic portal designed to help college and university students access learning resources, organize study materials, and improve academic productivity through an intuitive digital platform.
 
-The project integrates a modern React frontend utilizing Tailwind CSS v4 and Lucide React icons with a Node.js/Express backend connected to a MongoDB database.
+The system combines a React frontend built with Tailwind CSS and a Node.js/Express backend powered by MongoDB, providing a scalable and responsive academic resource management solution.
+
+---
+
+## Overview
+
+Many students struggle to locate organized academic resources, manage study notes, and prepare effectively for examinations.
+
+ScholarHub addresses these challenges by providing a centralized platform where students can:
+
+* Access and download past examination papers.
+* Organize personal study notes.
+* Search academic resources efficiently.
+* Interact with a study assistant for academic support.
+* Manage their academic profile in a secure environment.
 
 ---
 
 ## Key Features
 
-1. **🔒 Secure User Authentication & Protected Routes**:
-   - Register email accounts, select your academic institution, and declare your major.
-   - Secure token-based user login powered by JWT encryption and bcrypt password hashing.
-   - Protected client-side routing; unauthorized portal access automatically intercepts and redirects users to sign in.
-2. **📚 Past Papers Archive & Search Engine**:
-   - Access comprehensive syllabus resource records fetched dynamically from MongoDB.
-   - Full-text search filters across module codes, course titles, and instructors.
-   - Interactive dropdown filters for department, course, exam year, and semester terms.
-   - Automated download counter tracking incremented in the database.
-3. **🤖 Scholar Assistant (AI Study Assistant)**:
-   - Persistent chat session logs saved in MongoDB.
-   - Interactive suggestions panel with prompt pre-loads.
-   - Contextual mock AI responses answering questions about file uploads and licensing.
-   - Message limit counter and progress stats tracking.
-4. **📝 Quick Notes Pad**:
-   - Create, retrieve, and delete study notes dynamically from the main dashboard.
-   - Full note content persists in MongoDB and links directly to the authenticated user profile.
-5. **✨ Premium Visual Polish**:
-   - High-contrast typography featuring Outfit and Poppins fonts.
-   - Sleek deep green brand color theme (`#004D40`) with balanced contrast, visual alerts, and hover effects.
-   - Real-time animated checking toast notifications validating downloads, notes, and bookmark actions.
+### Secure User Authentication & Protected Routes
+
+* User registration and login functionality.
+* Secure JWT-based authentication.
+* Password hashing using bcryptjs.
+* Protected routes preventing unauthorized access.
+* Student profile creation with institution and course information.
+
+### Past Papers Archive & Search Engine
+
+* Dynamic retrieval of past papers from MongoDB.
+* Search functionality across module codes, course titles, and instructors.
+* Department, course, semester, and year filtering.
+* Download tracking and statistics.
+* Featured papers section for highlighted resources.
+
+### Scholar Assistant (AI Study Assistant)
+
+* Persistent chat session history.
+* Suggested prompts for quick interaction.
+* Contextual mock AI responses for academic guidance.
+* Chat statistics and message tracking.
+
+> Note: The current AI assistant implementation uses simulated responses for demonstration purposes and serves as a foundation for future integration with advanced AI models.
+
+### Quick Notes Pad
+
+* Create study notes.
+* Retrieve personal notes.
+* Delete notes when no longer needed.
+* Persistent storage linked to authenticated user accounts.
+
+### Modern User Experience
+
+* Responsive design for desktop and mobile devices.
+* Tailwind CSS v4 styling.
+* Lucide React icons.
+* Clean dashboard interface.
+* Real-time notifications and user feedback.
 
 ---
 
 ## Technology Stack
 
 ### Frontend (Client)
-- **Core Framework**: React 19 & React Router DOM v7
-- **Styling**: Tailwind CSS v4 (configured via direct CSS directives)
-- **Icons**: Lucide React
-- **Build Tool**: Vite v8
+
+* React 19
+* React Router DOM v7
+* Tailwind CSS v4
+* Lucide React
+* Vite
 
 ### Backend (Server)
-- **Runtime**: Node.js & Express
-- **Database**: MongoDB & Mongoose
-- **Security**: JWT (jsonwebtoken), bcryptjs, and CORS policies
-- **Configuration**: dotenv
+
+* Node.js
+* Express.js
+* MongoDB
+* Mongoose
+* JSON Web Tokens (JWT)
+* bcryptjs
+* CORS
+* dotenv
 
 ---
 
@@ -52,25 +91,25 @@ The project integrates a modern React frontend utilizing Tailwind CSS v4 and Luc
 
 ```text
 LIBRARY PORTAL/
-├── client/                 # React Frontend
+├── client/
 │   ├── src/
-│   │   ├── assets/         # Images, mockup graphics, and icons
-│   │   ├── components/     # Shared components (Sidebar, Footer, FilterSelect, PaperCard, FeaturedCard, TopBar)
-│   │   ├── pages/          # View screens (Landing, Login, Register, Dashboard, PastPapers, AIAssistant)
-│   │   ├── App.jsx         # Client-side router & authentication guards
-│   │   └── main.jsx        # App entry point
-│   ├── vite.config.js      # Vite dev server configuration & API Proxy mapping
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── vite.config.js
 │   └── package.json
 │
-├── server/                 # Express Backend API
-│   ├── middleware/         # Authorization check handlers (JWT validator)
-│   ├── models/             # Mongoose MongoDB schemas (User, Paper, ChatSession, ChatMessage, Note)
-│   ├── routes/             # Controller route endpoints (auth, papers, chats, notes)
-│   ├── index.js            # Node startup entry point & database seeder script
+├── server/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── index.js
 │   └── package.json
 │
-├── .gitignore              # Workspace repository ignore list
-└── README.md               # Main project description & setup guide
+├── .gitignore
+└── README.md
 ```
 
 ---
@@ -78,68 +117,175 @@ LIBRARY PORTAL/
 ## Local Setup & Installation
 
 ### Prerequisites
-- Install [Node.js](https://nodejs.org/) (v18 or higher recommended).
-- Ensure [MongoDB](https://www.mongodb.com/try/download/community) is installed and running on your local machine (`mongodb://127.0.0.1:27017`).
+
+* Node.js v18 or later
+* MongoDB Community Edition or MongoDB Atlas
 
 ### Step 1: Clone the Repository
+
 ```bash
 git clone <repository-url>
 cd "LIBRARY PORTAL"
 ```
 
 ### Step 2: Configure Backend Server
-1. Navigate to the `server/` directory and install dependencies:
-   ```bash
-   cd server
-   npm install
-   ```
-2. Create a `.env` file in the `server/` directory:
-   ```env
-   PORT=5000
-   MONGODB_URI=mongodb://127.0.0.1:27017/scholarhub
-   JWT_SECRET=scholarhubsecretjwtkeyfortestingpurposes123
-   ```
-3. Start the backend API server. On start, the database seeder will automatically insert mock past papers into your MongoDB if the collection is empty:
-   ```bash
-   npm run dev
-   # or
-   node index.js
-   ```
+
+Navigate to the server directory:
+
+```bash
+cd server
+npm install
+```
+
+Create a `.env` file inside the `server` directory:
+
+```env
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+```
+
+Start the backend server:
+
+```bash
+npm run dev
+```
+
+or
+
+```bash
+node index.js
+```
+
+If the database is empty, the application will automatically seed sample past paper records.
 
 ### Step 3: Configure Frontend Client
-1. Open a new terminal window, navigate to the `client/` directory, and install dependencies:
-   ```bash
-   cd client
-   npm install
-   ```
-2. Run the Vite development server:
-   ```bash
-   npm run dev
-   ```
-3. Open your browser and navigate to `http://localhost:5173`.
+
+Open a new terminal window:
+
+```bash
+cd client
+npm install
+```
+
+Start the frontend development server:
+
+```bash
+npm run dev
+```
+
+Visit:
+
+```text
+http://localhost:5173
+```
 
 ---
 
-## MongoDB Database Schemas Reference
+## Environment Variables
+
+Create a `.env` file inside the `server` directory using the following template:
+
+```env
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+```
+
+Important:
+
+* Do not commit your `.env` file to GitHub.
+* Add `.env` to your `.gitignore`.
+* Never expose database credentials or JWT secrets publicly.
+
+---
+
+## API Modules
+
+### Authentication
+
+* User Registration
+* User Login
+* JWT Authentication
+
+### Past Papers
+
+* Retrieve Papers
+* Search Papers
+* Filter Papers
+* Track Downloads
+
+### Notes
+
+* Create Notes
+* Retrieve Notes
+* Delete Notes
+
+### Chat Assistant
+
+* Create Chat Sessions
+* Save Messages
+* Retrieve Chat History
+
+---
+
+## MongoDB Database Schemas
 
 ### User Schema (`models/User.js`)
-- `fullName` (String, required): Full name of the student.
-- `email` (String, required, unique): University email address.
-- `password` (String, required): Bcrypt hashed password string.
-- `institution` (String): Declared college institution.
-- `course` (String): Student's course major.
+
+| Field       | Type   | Description          |
+| ----------- | ------ | -------------------- |
+| fullName    | String | Student full name    |
+| email       | String | Unique email address |
+| password    | String | Hashed password      |
+| institution | String | Academic institution |
+| course      | String | Course or program    |
 
 ### Paper Schema (`models/Paper.js`)
-- `title` (String, required): Past paper course title.
-- `module` (String, required): Module code identifiers.
-- `instructor` (String, required): Class instructor/professor.
-- `semester` (String, required): Semester term.
-- `downloads` (Number): Global download counts metrics.
-- `views` (Number): View statistics.
-- `isFeatured` (Boolean): Defines if the paper is displayed as a large wide card.
+
+| Field      | Type    | Description           |
+| ---------- | ------- | --------------------- |
+| title      | String  | Course title          |
+| module     | String  | Module code           |
+| instructor | String  | Lecturer name         |
+| semester   | String  | Academic semester     |
+| downloads  | Number  | Download count        |
+| views      | Number  | View count            |
+| isFeatured | Boolean | Featured paper status |
 
 ### Note Schema (`models/Note.js`)
-- `userId` (ObjectId, ref User): Owner student profile reference.
-- `title` (String, required): Title of the quick note.
-- `content` (String): Content notes description.
-- `createdAt` (Date): Creation timestamp.
+
+| Field     | Type     | Description        |
+| --------- | -------- | ------------------ |
+| userId    | ObjectId | User reference     |
+| title     | String   | Note title         |
+| content   | String   | Note content       |
+| createdAt | Date     | Creation timestamp |
+
+---
+
+## Security Features
+
+* JWT Authentication
+* Password Hashing with bcryptjs
+* Protected Routes
+* Environment Variable Configuration
+* MongoDB Data Validation
+* CORS Protection
+
+---
+
+## Future Enhancements
+
+* Real AI model integration
+* Speech-to-text academic search
+* Lecturer content uploads
+* Personalized study recommendations
+* Machine Learning analytics
+* Mobile application support
+
+---
+
+## License
+
+This project is intended for educational and academic purposes.
