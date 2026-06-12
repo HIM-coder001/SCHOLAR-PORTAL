@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Sparkles, ChevronDown } from "lucide-react";
+import { Eye, EyeOff, BookOpen, Sparkles, ChevronDown } from "lucide-react";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ const Register = () => {
     course: "",
     agreed: false,
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [regError, setRegError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -50,15 +52,46 @@ const Register = () => {
     }
   };
 
-  const handleSocialRegister = () => {
-    localStorage.setItem("token", "mock-social-token-key-12345");
-    localStorage.setItem("user", JSON.stringify({
+  const handleSocialRegister = async () => {
+    setRegError("");
+    const demoUser = {
       fullName: "Alex Rivers",
       email: "alex.rivers@university.edu",
+      password: "demo123456",
       institution: "Stanford University",
-      course: "Computer Science"
-    }));
-    navigate("/dashboard", { replace: true });
+      course: "Computer Science",
+    };
+
+    try {
+      // Try register first
+      let response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(demoUser),
+      });
+
+      // If user already exists, login instead
+      if (!response.ok) {
+        response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: demoUser.email, password: demoUser.password }),
+        });
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        setRegError(data.message || "Social sign-up failed.");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      console.error("Social Register Error:", error);
+      setRegError("Network error. Make sure the server is running.");
+    }
   };
 
   return (
@@ -80,9 +113,11 @@ const Register = () => {
             {/* Logo */}
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                <svg viewBox="0 0 32 32" fill="none" className="w-6 h-6 text-white">
-                  <path d="M8 22L16 10L24 22" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M10 19h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+                  <path d="M12 3L2 8l10 5 10-5-10-5z" fill="white" stroke="white" strokeWidth="0.5" strokeLinejoin="round" />
+                  <path d="M6 10.5v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M20 8v5.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="20" cy="14.5" r="1" fill="white" />
                 </svg>
               </div>
               <span className="text-2xl font-bold tracking-tight font-outfit">ScholarHub</span>
@@ -222,33 +257,39 @@ const Register = () => {
 
               <div className="grid md:grid-cols-2 gap-4">
                 {/* Password */}
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                     Password
                   </label>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full bg-[#f4f6f4] border border-gray-200/60 focus:bg-white rounded-2xl px-4 py-3.5 text-sm placeholder-gray-400 focus:outline-none focus:border-[#004D40] shadow-sm transition font-medium"
                   />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-10 flex items-center text-gray-400 hover:text-gray-600">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
 
                 {/* Confirm Password */}
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">
                     Confirm Password
                   </label>
                   <input
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     required
                     placeholder="••••••••"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     className="w-full bg-[#f4f6f4] border border-gray-200/60 focus:bg-white rounded-2xl px-4 py-3.5 text-sm placeholder-gray-400 focus:outline-none focus:border-[#004D40] shadow-sm transition font-medium"
                   />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-10 flex items-center text-gray-400 hover:text-gray-600">
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 
