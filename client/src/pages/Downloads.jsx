@@ -6,11 +6,11 @@ const Downloads = () => {
   return (
     <div className="min-h-screen bg-[#fcfdfc] flex font-sans">
       <Sidebar />
-      <div className="ml-60 flex-1 flex flex-col min-h-screen">
+      <div className="lg:ml-64 flex-1 flex flex-col min-h-screen">
         
         {/* Header */}
         <header className="flex items-center justify-between px-8 py-3.5 bg-white border-b border-gray-100 sticky top-0 z-10">
-          <div className="flex-1 max-w-lg flex items-center gap-2 bg-gray-50 border border-gray-200/80 rounded-full px-4 py-2">
+          <div className="flex-1 max-w-lg flex items-center gap-2 bg-gray-50 border border-gray-200/80 rounded-full px-4 py-2 ml-12 lg:ml-0">
             <Search size={16} className="text-gray-400 shrink-0" />
             <input
               type="text"
@@ -46,3 +46,4 @@ const Downloads = () => {
 };
 
 export default Downloads;
+

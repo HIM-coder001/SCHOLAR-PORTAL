@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/shared/Sidebar";
-import Footer from "../components/shared/Footer";
 import { 
   Sparkles, 
   Share2, 
@@ -15,7 +14,10 @@ import {
   CheckCircle2,
   Lock,
   Smartphone,
-  Coins
+  Coins,
+  Menu,
+  X,
+  MessageSquare
 } from "lucide-react";
 
 const AIAssistant = () => {
@@ -24,6 +26,10 @@ const AIAssistant = () => {
   const [messages, setMessages] = useState([]);
   const [inputVal, setInputVal] = useState("");
   const [toast, setToast] = useState({ show: false, message: "" });
+  
+  // Responsive UI states
+  const [showSessionsDrawer, setShowSessionsDrawer] = useState(false);
+  const messagesEndRef = useRef(null);
   
   // User credits states
   const [userMeta, setUserMeta] = useState({ messageCount: 750, messageLimit: 1000 });
@@ -40,10 +46,11 @@ const AIAssistant = () => {
 
   const triggerToast = (message) => {
     setToast({ show: true, message });
-    const timer = setTimeout(() => {
-      setToast({ show: false, message: "" });
-    }, 3500);
-    return () => clearTimeout(timer);
+    setTimeout(() => setToast({ show: false, message: "" }), 3500);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -54,65 +61,48 @@ const AIAssistant = () => {
   useEffect(() => {
     if (selectedSessionId) {
       fetchMessages(selectedSessionId);
+      setShowSessionsDrawer(false); // Close drawer on mobile when session selected
     } else {
       setMessages([]);
     }
   }, [selectedSessionId]);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loadingMessages]);
+
   const fetchUserMeta = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
-        setUserMeta({
-          messageCount: data.messageCount ?? 750,
-          messageLimit: data.messageLimit ?? 1000
-        });
+        setUserMeta({ messageCount: data.messageCount ?? 750, messageLimit: data.messageLimit ?? 1000 });
       }
-    } catch (err) {
-      console.error("Fetch profile error:", err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const fetchSessions = async (selectFirst = true) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/chats", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch("/api/chats", { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         setSessions(data);
-        if (selectFirst && data.length > 0) {
-          setSelectedSessionId(data[0]._id);
-        }
+        if (selectFirst && data.length > 0) setSelectedSessionId(data[0]._id);
       }
-    } catch (err) {
-      console.error("Fetch sessions error:", err);
-    } finally {
-      setLoadingSessions(false);
-    }
+    } catch (err) { console.error(err); } 
+    finally { setLoadingSessions(false); }
   };
 
   const fetchMessages = async (sessionId) => {
     setLoadingMessages(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/chats/${sessionId}/messages`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data);
-      }
-    } catch (err) {
-      console.error("Fetch messages error:", err);
-    } finally {
-      setLoadingMessages(false);
-    }
+      const res = await fetch(`/api/chats/${sessionId}/messages`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setMessages(await res.json());
+    } catch (err) { console.error(err); } 
+    finally { setLoadingMessages(false); }
   };
 
   const handleSend = async (e) => {
@@ -122,7 +112,6 @@ const AIAssistant = () => {
     const userText = inputVal;
     setInputVal("");
 
-    // Optimistically add user message to list
     const tempUserMsg = { _id: Date.now().toString(), sender: "user", text: userText };
     setMessages((prev) => [...prev, tempUserMsg]);
 
@@ -130,633 +119,436 @@ const AIAssistant = () => {
       const token = localStorage.getItem("token");
       const res = await fetch(`/api/chats/${selectedSessionId}/messages`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ text: userText })
       });
-
       const data = await res.json();
-
       if (res.ok) {
-        // Update local credits metrics returned from API response
-        setUserMeta({
-          messageCount: data.messageCount,
-          messageLimit: data.messageLimit
-        });
-        // Reload messages thread
+        setUserMeta({ messageCount: data.messageCount, messageLimit: data.messageLimit });
         fetchMessages(selectedSessionId);
       } else {
-        // If error was limits breach, refresh metrics
         if (res.status === 403 && data.limitReached) {
-          setUserMeta({
-            messageCount: data.messageCount,
-            messageLimit: data.messageLimit
-          });
+          setUserMeta({ messageCount: data.messageCount, messageLimit: data.messageLimit });
         }
         triggerToast(data.message || "Failed to deliver message.");
-        // Clear optimistic user bubble by reloading
         fetchMessages(selectedSessionId);
       }
     } catch (err) {
-      console.error("Send message error:", err);
       triggerToast("Error sending message to server.");
       fetchMessages(selectedSessionId);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedSessionId) return;
+    
+    if (file.type !== "application/pdf") {
+      triggerToast("Only PDF files are supported currently.");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      triggerToast("File size must be under 50MB.");
+      return;
+    }
+    if (isLimitReached) {
+      triggerToast("Usage limit reached. Please buy credits via M-Pesa.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("document", file);
+
+    const tempMsgId = Date.now().toString();
+    setMessages((prev) => [...prev, { _id: tempMsgId, sender: "user", text: "Uploading PDF...", attachment: file.name }]);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/chats/${selectedSessionId}/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUserMeta({ messageCount: data.messageCount, messageLimit: data.messageLimit });
+        fetchMessages(selectedSessionId);
+        triggerToast("PDF analyzed successfully.");
+      } else {
+        triggerToast(data.message || "Failed to upload file.");
+        setMessages((prev) => prev.filter(m => m._id !== tempMsgId));
+      }
+    } catch (err) {
+      triggerToast("Network error uploading file.");
+      setMessages((prev) => prev.filter(m => m._id !== tempMsgId));
     }
   };
 
   const startNewSession = async () => {
     const title = prompt("Enter a topic/course name for the new chat session:");
     if (!title) return;
-
     try {
       const token = localStorage.getItem("token");
       const res = await fetch("/api/chats", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ title })
       });
-
       if (res.ok) {
         const newSession = await res.json();
         await fetchSessions(false);
         setSelectedSessionId(newSession._id);
         triggerToast(`Created session: "${title}"`);
-      } else {
-        triggerToast("Failed to create new session.");
       }
-    } catch (err) {
-      console.error("Create session error:", err);
-      triggerToast("Error connecting to server.");
-    }
+    } catch (err) { triggerToast("Error connecting to server."); }
   };
 
-  // M-Pesa Top Up submit handler
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
-    setPayError("");
-    setPaySuccess("");
-    setPaying(true);
-
+    setPayError(""); setPaySuccess(""); setPaying(true);
     try {
       const token = localStorage.getItem("token");
       const res = await fetch("/api/payment/mpesa-push", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ phone: phoneVal, amount: payAmount })
       });
-
       const data = await res.json();
-
       if (res.ok) {
         setPaySuccess(data.message);
-        setUserMeta({
-          messageCount: data.messageCount,
-          messageLimit: data.messageLimit
-        });
+        setUserMeta({ messageCount: data.messageCount, messageLimit: data.messageLimit });
         triggerToast("M-Pesa top-up successfully credited!");
-        setTimeout(() => {
-          setShowPayModal(false);
-          setPaySuccess("");
-        }, 3000);
+        setTimeout(() => { setShowPayModal(false); setPaySuccess(""); }, 3000);
       } else {
         setPayError(data.message || "Payment simulation failed.");
       }
-    } catch (err) {
-      console.error("Payment error:", err);
-      setPayError("Network connection failure. Try again.");
-    } finally {
-      setPaying(false);
-    }
+    } catch (err) { setPayError("Network connection failure. Try again."); } 
+    finally { setPaying(false); }
   };
 
   const isLimitReached = userMeta.messageCount >= userMeta.messageLimit;
   const usagePercentage = Math.min(100, (userMeta.messageCount / userMeta.messageLimit) * 100);
 
   return (
-    <div className="min-h-screen bg-[#fcfdfc] flex font-sans text-gray-800">
+    <div className="min-h-screen bg-[#f4f7f5] flex font-sans text-gray-800">
       <Sidebar />
 
-      {/* Main Container (ml-64) */}
-      <div className="ml-64 flex-1 flex flex-col min-h-screen relative">
+      {/* Main Container */}
+      <div className="lg:ml-64 flex-1 flex flex-col h-screen overflow-hidden relative">
         
         {/* Top Header */}
-        <header className="flex items-center justify-between px-8 py-3.5 bg-white border-b border-gray-100 sticky top-0 z-10">
-          <div className="flex items-center gap-8">
-            <span className="text-base font-bold text-gray-500 hover:text-gray-800 cursor-pointer">Library</span>
-            <span className="text-base font-extrabold text-emerald-800 border-b-2 border-emerald-800 pb-1.5 cursor-pointer">AI Assistant</span>
-            <span className="text-base font-bold text-gray-500 hover:text-gray-800 cursor-pointer">Collections</span>
+        <header className="flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-gray-100 z-10 shrink-0">
+          <div className="flex items-center gap-4 ml-12 lg:ml-0">
+            <button 
+              className="lg:hidden p-2 bg-gray-50 text-gray-600 rounded-xl hover:bg-gray-100 transition"
+              onClick={() => setShowSessionsDrawer(true)}
+            >
+              <MessageSquare size={20} />
+            </button>
+            <div className="hidden sm:flex items-center gap-6">
+              <span className="text-sm font-extrabold text-gray-400 hover:text-gray-800 cursor-pointer transition">Library</span>
+              <span className="text-sm font-extrabold text-[#004D40] border-b-2 border-[#004D40] pb-1 cursor-pointer">AI Assistant</span>
+            </div>
           </div>
 
-          {/* User profile & actions */}
-          <div className="flex items-center gap-5">
-            <button 
-              onClick={() => triggerToast("No new notifications.")}
-              className="relative p-2 text-gray-500 hover:text-gray-700 transition cursor-pointer"
-            >
-              <Bell size={22} className="stroke-[1.8]" />
-              <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
+          <div className="flex items-center gap-4">
+            <button className="relative p-2 text-gray-400 hover:text-[#004D40] bg-gray-50 rounded-full transition cursor-pointer hidden sm:block">
+              <Bell size={18} className="stroke-[2.5]" />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full" />
             </button>
-
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-gray-200">
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                  alt="Alex Rivers avatar"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" className="w-full h-full object-cover" />
             </div>
           </div>
         </header>
 
         {/* AI Assistant Layout Split */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
           
-          {/* Middle Column - Recent Conversations (width: 270px) */}
-          <div className="w-68 border-r border-gray-150 flex flex-col justify-between p-6 bg-white shrink-0">
-            <div className="space-y-7">
-              {/* New Session Button */}
+          {/* Mobile Sessions Overlay */}
+          {showSessionsDrawer && (
+            <div className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm" onClick={() => setShowSessionsDrawer(false)} />
+          )}
+
+          {/* Left Column - Sessions List */}
+          <div className={`
+            absolute lg:relative top-0 left-0 h-full bg-white z-40 w-72 lg:w-80 border-r border-gray-100 
+            flex flex-col justify-between transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none
+            ${showSessionsDrawer ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          `}>
+            <div className="flex flex-col h-full overflow-hidden p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h4 className="text-sm font-extrabold text-gray-900 font-outfit">
+                  Conversations
+                </h4>
+                <button className="lg:hidden p-1 text-gray-400" onClick={() => setShowSessionsDrawer(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+
               <button 
                 onClick={startNewSession}
-                className="w-full bg-[#004D40] hover:bg-[#00382e] text-sm font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-950/20 transition cursor-pointer"
+                className="w-full bg-[#004D40] hover:bg-[#00382e] text-white text-sm font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-[#004D40]/20 transition shrink-0 mb-6"
               >
                 <Plus size={18} />
                 <span>New Session</span>
               </button>
 
-              {/* Sessions List */}
-              <div>
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 px-1">
-                  Recent Conversations
-                </h4>
-                
+              <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                 {loadingSessions ? (
-                  <div className="text-xs text-gray-400 p-2 font-bold">Loading chats...</div>
-                ) : (
-                  <div className="space-y-2">
-                    {sessions.map((sess) => (
-                      <button 
-                        key={sess._id} 
-                        onClick={() => {
-                          setSelectedSessionId(sess._id);
-                          triggerToast(`Loaded chat: "${sess.title}"`);
-                        }}
-                        className={`w-full text-left p-3.5 rounded-xl transition cursor-pointer border ${
-                          selectedSessionId === sess._id 
-                            ? "bg-[#D2E7DF]/30 border-emerald-300/40 text-emerald-950 font-bold" 
-                            : "border-transparent hover:bg-gray-50 text-gray-700 font-semibold"
-                        }`}
-                      >
-                        <h5 className="text-sm font-bold truncate">
-                          {sess.title}
-                        </h5>
-                        <span className="text-xs text-gray-455 mt-1 block font-medium">
-                          {new Date(sess.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
-                        </span>
-                      </button>
-                    ))}
-
-                    {sessions.length === 0 && (
-                      <div className="text-center py-6 text-xs text-gray-400 font-bold border border-dashed rounded-xl">
-                        No previous chats.
-                      </div>
-                    )}
+                  <div className="text-sm text-gray-400 font-bold animate-pulse">Loading...</div>
+                ) : sessions.length === 0 ? (
+                  <div className="text-center py-6 text-sm text-gray-400 font-bold border-2 border-dashed border-gray-100 rounded-2xl">
+                    No chats yet.
                   </div>
+                ) : (
+                  sessions.map((sess) => (
+                    <button 
+                      key={sess._id} 
+                      onClick={() => setSelectedSessionId(sess._id)}
+                      className={`w-full text-left p-4 rounded-2xl transition border ${
+                        selectedSessionId === sess._id 
+                          ? "bg-emerald-50/50 border-[#004D40]/20 text-[#004D40] font-bold shadow-sm" 
+                          : "border-transparent hover:bg-gray-50 text-gray-600 font-semibold"
+                      }`}
+                    >
+                      <h5 className="text-sm truncate leading-snug">{sess.title}</h5>
+                      <span className="text-[10px] text-gray-400 mt-1.5 block font-bold uppercase tracking-widest">
+                        {new Date(sess.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                      </span>
+                    </button>
+                  ))
                 )}
               </div>
             </div>
 
-            {/* Bottom Usage Limit Box with TopUp Action */}
-            <div className="bg-[#D2E7DF]/40 border border-[#D2E7DF]/60 rounded-2xl p-5 flex flex-col">
-              <div className="flex items-center justify-between mb-2.5">
-                <h5 className="text-xs font-bold text-[#004D40] uppercase tracking-wider">
-                  Usage Limit
-                </h5>
-                <button 
-                  onClick={() => setShowPayModal(true)}
-                  className="text-[10px] font-black uppercase text-emerald-900 bg-white/60 hover:bg-white px-2 py-0.5 rounded border border-emerald-300/30 transition cursor-pointer"
-                >
-                  Top Up
-                </button>
+            {/* Bottom Usage Limit Box */}
+            <div className="p-6 bg-gray-50 border-t border-gray-100">
+              <div className="bg-white border border-gray-200/60 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h5 className="text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">
+                    Usage
+                  </h5>
+                  <button 
+                    onClick={() => setShowPayModal(true)}
+                    className="text-[10px] font-black uppercase text-white bg-[#004D40] hover:bg-[#00382e] px-2.5 py-1 rounded-lg transition"
+                  >
+                    Top Up
+                  </button>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
+                  <div className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? "bg-rose-500" : "bg-[#004D40]"}`} style={{ width: `${usagePercentage}%` }} />
+                </div>
+                <p className="text-xs font-extrabold text-gray-700">
+                  {userMeta.messageCount} / {userMeta.messageLimit} <span className="text-gray-400 font-semibold">msgs</span>
+                </p>
               </div>
-              
-              <div className="w-full bg-emerald-100 rounded-full h-2.5 overflow-hidden mb-2.5">
-                <div 
-                  className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? "bg-red-500" : "bg-[#004D40]"}`}
-                  style={{ width: `${usagePercentage}%` }}
-                ></div>
-              </div>
-              <p className="text-xs font-bold text-emerald-800">
-                {userMeta.messageCount}/{userMeta.messageLimit} messages used
-              </p>
             </div>
           </div>
 
           {/* Right Column - Chat Thread */}
-          <div className="flex-1 flex flex-col justify-between bg-[#fbfcfa]">
+          <div className="flex-1 flex flex-col bg-[#fcfdfc] relative">
             
             {/* Thread Header */}
-            <div className="px-8 py-5 bg-white border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-[#D2E7DF]/50 flex items-center justify-center text-[#004D40]">
-                  <Sparkles size={22} className="stroke-[1.8]" />
+            <div className="px-6 py-4 bg-white/60 backdrop-blur-md border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-50 flex items-center justify-center text-[#004D40] shadow-sm">
+                  <Sparkles size={20} className="stroke-[2]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-gray-900 font-outfit leading-none">
-                    Scholar Assistant
-                  </h3>
-                  <span className="text-xs text-gray-400 font-bold mt-1.5 block">
-                    Powered by Advanced Academic Models
-                  </span>
+                  <h3 className="text-base font-extrabold text-gray-900 font-outfit">Scholar Assistant</h3>
+                  <span className="text-xs text-gray-400 font-bold block mt-0.5">Academic AI Engine</span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => triggerToast("Link copied to clipboard!")}
-                  className="p-2.5 text-gray-400 hover:text-gray-655 hover:bg-gray-50 rounded-xl transition cursor-pointer"
-                >
-                  <Share2 size={18} />
-                </button>
-                <button className="p-2.5 text-gray-400 hover:text-gray-655 hover:bg-gray-50 rounded-xl transition cursor-pointer">
-                  <MoreVertical size={18} />
-                </button>
-              </div>
+              <button className="p-2.5 text-gray-400 hover:text-[#004D40] bg-white border border-gray-100 rounded-xl shadow-sm transition">
+                <Share2 size={16} className="stroke-[2.5]" />
+              </button>
             </div>
 
-            {/* Chat Messages Log */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 scroll-smooth custom-scrollbar pb-32">
               {loadingMessages ? (
-                <div className="text-center py-12 text-xs text-gray-400 font-bold">Loading conversation thread...</div>
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-3">
+                  <div className="w-6 h-6 border-2 border-[#004D40] border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm font-bold">Syncing knowledge base...</p>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto text-center space-y-6">
+                  <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-[#004D40]">
+                    <Sparkles size={36} className="stroke-[1.5]" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 font-outfit mb-2">How can I help you study?</h2>
+                    <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                      I can summarize notes, extract insights from long PDFs, or answer complex academic questions based on scholarly archives.
+                    </p>
+                  </div>
+                </div>
               ) : (
-                messages.map((msg, i) => {
-                  if (msg.sender === "ai") {
-                    return (
-                      <div key={msg._id || i} className="flex gap-4.5 items-start max-w-2xl">
-                        <div className="w-9 h-9 rounded-xl bg-[#D2E7DF] flex items-center justify-center text-[#004D40] shrink-0 shadow-sm border border-[#D2E7DF]/30">
-                          <Sparkles size={16} className="stroke-[2.2]" />
-                        </div>
-                        <div className="space-y-4 flex-1">
-                          {/* Text bubble */}
-                          <div className="bg-white border border-gray-150 rounded-3xl p-5 shadow-sm text-sm text-gray-700 leading-relaxed font-semibold markdown-chat-content">
+                messages.map((msg, i) => (
+                  <div key={msg._id || i} className={`flex gap-4 items-start ${msg.sender === "user" ? "flex-row-reverse" : ""}`}>
+                    
+                    {msg.sender === "ai" && (
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-50 flex items-center justify-center text-[#004D40] shrink-0 shadow-sm border border-emerald-100/50 mt-1">
+                        <Sparkles size={18} className="stroke-[2]" />
+                      </div>
+                    )}
+                    
+                    {msg.sender === "user" && (
+                      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 shrink-0 mt-1 shadow-sm">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="User" />
+                      </div>
+                    )}
+
+                    <div className={`flex flex-col gap-2 max-w-[85%] md:max-w-2xl ${msg.sender === "user" ? "items-end" : "items-start"}`}>
+                      <div className={`p-5 rounded-3xl text-sm leading-relaxed font-medium shadow-sm
+                        ${msg.sender === "ai" 
+                          ? "bg-white border border-gray-100 text-gray-700 rounded-tl-sm" 
+                          : "bg-[#004D40] text-white rounded-tr-sm"}`
+                      }>
+                        {msg.sender === "ai" ? (
+                          <div className="space-y-3 markdown-chat-content">
                             {msg.text.split("\n").map((line, lIdx) => {
-                              if (line.startsWith("###")) {
-                                return <h4 key={lIdx} className="text-base font-extrabold text-emerald-950 font-outfit mb-3">{line.replace("###", "")}</h4>;
-                              }
-                              if (line.startsWith("* **")) {
-                                return <p key={lIdx} className="text-xs leading-relaxed font-bold mt-2 text-gray-700">{line.replace("*", "")}</p>;
-                              }
-                              if (line.startsWith("-") || line.startsWith("*")) {
-                                return <li key={lIdx} className="text-xs list-disc pl-4 mt-1 leading-relaxed text-gray-600">{line.substring(1).trim()}</li>;
-                              }
-                              return <p key={lIdx} className="mb-2">{line}</p>;
+                              if (line.startsWith("###")) return <h4 key={lIdx} className="text-base font-extrabold text-gray-900 font-outfit mb-2">{line.replace("###", "")}</h4>;
+                              if (line.startsWith("* **")) return <p key={lIdx} className="font-bold text-gray-800 mt-2">{line.replace("*", "")}</p>;
+                              if (line.startsWith("-") || line.startsWith("*")) return <li key={lIdx} className="list-disc ml-4 text-gray-600">{line.substring(1).trim()}</li>;
+                              if (line.startsWith(">")) return <blockquote key={lIdx} className="pl-4 border-l-2 border-[#004D40] text-gray-500 italic my-2">{line.substring(1)}</blockquote>;
+                              return <p key={lIdx}>{line}</p>;
                             })}
                           </div>
-
-                          {/* Quick Suggestions Cards (only for first message) */}
-                          {i === 0 && (
-                            <div className="grid sm:grid-cols-2 gap-4">
-                              <button
-                                onClick={() => {
-                                  if (isLimitReached) {
-                                    triggerToast("Credit limit reached! Unlock with M-Pesa.");
-                                    return;
-                                  }
-                                  setInputVal("Summarize my study topic");
-                                  triggerToast('Suggested prompt: "Summarize topic"');
-                                }}
-                                className="text-left bg-white border border-gray-150 hover:border-emerald-600/30 rounded-2xl p-4.5 shadow-sm hover:shadow transition flex gap-3.5 cursor-pointer group"
-                              >
-                                <div className="w-9 h-9 rounded-xl bg-gray-50 group-hover:bg-emerald-50 text-gray-500 group-hover:text-emerald-800 transition flex items-center justify-center shrink-0 border border-gray-100">
-                                  <FileText size={16} />
-                                </div>
-                                <div>
-                                  <h5 className="text-sm font-extrabold text-gray-800 group-hover:text-[#004D40] transition">
-                                    Summarize a Topic
-                                  </h5>
-                                  <span className="text-xs text-gray-400 font-bold block mt-0.5">
-                                    Get key takeaways in seconds.
-                                  </span>
-                                </div>
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  if (isLimitReached) {
-                                    triggerToast("Credit limit reached! Unlock with M-Pesa.");
-                                    return;
-                                  }
-                                  setInputVal("Give notes on Mitosis phases");
-                                  triggerToast('Suggested prompt: "Give notes on Mitosis"');
-                                }}
-                                className="text-left bg-white border border-gray-150 hover:border-emerald-600/30 rounded-2xl p-4.5 shadow-sm hover:shadow transition flex gap-3.5 cursor-pointer group"
-                              >
-                                <div className="w-9 h-9 rounded-xl bg-gray-50 group-hover:bg-emerald-50 text-gray-500 group-hover:text-emerald-800 transition flex items-center justify-center shrink-0 border border-gray-100">
-                                  <Lightbulb size={16} />
-                                </div>
-                                <div>
-                                  <h5 className="text-sm font-extrabold text-gray-800 group-hover:text-[#004D40] transition">
-                                    Create Short Notes
-                                  </h5>
-                                  <span className="text-xs text-gray-400 font-bold block mt-0.5">
-                                    Simplified revision notes.
-                                  </span>
-                                </div>
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        ) : (
+                          <p>{msg.text}</p>
+                        )}
                       </div>
-                    );
-                  } else {
-                    return (
-                      <div key={msg._id || i} className="flex gap-4 justify-end items-start">
-                        <div className="flex gap-3.5 items-start max-w-xl">
-                          {/* Chat bubble */}
-                          <div className="bg-[#004D40] text-white rounded-3xl p-5 shadow-md text-sm leading-relaxed font-semibold">
-                            {msg.text}
+
+                      {msg.attachment && (
+                        <div className="px-4 py-3 bg-white border border-gray-200 rounded-2xl shadow-sm flex items-center gap-3">
+                          <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-500">
+                            <FileText size={18} />
                           </div>
-
-                          {/* Optional thumbnail attachment */}
-                          {msg.attachment && (
-                            <div 
-                              onClick={() => triggerToast(`Viewing document "${msg.attachment}"...`)}
-                              className="w-14 h-16 bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col items-center justify-center shrink-0 relative group cursor-pointer hover:border-emerald-600 transition"
-                            >
-                              <FileText size={20} className="text-rose-500" />
-                              <span className="text-[9px] font-bold text-gray-400 absolute bottom-1.5 uppercase">
-                                PDF
-                              </span>
-                            </div>
-                          )}
+                          <div>
+                            <span className="text-xs font-bold text-gray-800 block truncate max-w-[150px]">{msg.attachment}</span>
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">PDF Document</span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  }
-                })
-              )}
-
-              {/* Typing indicator */}
-              {!loadingMessages && messages.length > 0 && messages[messages.length - 1].sender === "user" && (
-                <div className="flex gap-4.5 items-start">
-                  <div className="w-9 h-9 rounded-xl bg-[#D2E7DF] flex items-center justify-center text-[#004D40] shrink-0 border border-[#D2E7DF]/30">
-                    <Sparkles size={16} />
+                      )}
+                    </div>
                   </div>
-                  <div className="bg-[#f0f2f0] px-5 py-3 rounded-2xl text-emerald-800 flex items-center justify-center gap-1 shadow-sm">
-                    <span className="w-2 h-2 bg-[#004D40] rounded-full animate-bounce"></span>
-                    <span className="w-2 h-2 bg-[#004D40] rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                    <span className="w-2 h-2 bg-[#004D40] rounded-full animate-bounce [animation-delay:0.4s]"></span>
-                  </div>
-                </div>
+                ))
               )}
-
-              {/* Uploader Box Component */}
-              <div className="border-2 border-dashed border-emerald-650/20 hover:border-emerald-650/40 bg-emerald-50/5 rounded-3xl p-8 text-center flex flex-col items-center justify-center max-w-2xl mx-auto my-8 transition">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-800 mb-4 border border-emerald-250">
-                  <CloudUpload size={26} className="stroke-[1.8]" />
-                </div>
-                <h4 className="text-sm font-extrabold text-gray-800">
-                  Drop scholarly documents here
-                </h4>
-                <p className="text-xs text-gray-400 font-bold mt-1.5 mb-5">
-                  PDF, DOCX, or LaTeX (Max 50MB)
-                </p>
-                <button 
-                  onClick={() => {
-                    if (isLimitReached) {
-                      triggerToast("Limit reached! Click Top Up to buy credits.");
-                      return;
-                    }
-                    // Simulate attachment upload
-                    setMessages(prev => [...prev, {
-                      _id: Date.now().toString(),
-                      sender: "user",
-                      text: "Analyze this homework document for me.",
-                      attachment: "mit_licensing_details.pdf"
-                    }]);
-                    triggerToast("Attached file: mit_licensing_details.pdf");
-                  }}
-                  className="bg-white border border-gray-300 hover:border-[#004D40] text-gray-700 hover:text-[#004D40] text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer"
-                >
-                  Browse Files
-                </button>
-              </div>
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Bar Form with Lock Banner */}
-            <div className="px-8 py-5 bg-white border-t border-gray-100">
+            {/* Input Form Area */}
+            <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-[#fcfdfc] via-[#fcfdfc] to-transparent pt-10 pb-6 px-6 md:px-8">
               
-              {/* Alert Limit Reached Warning banner */}
               {isLimitReached && (
-                <div className="mb-4 p-4 bg-rose-50 border border-rose-200/50 rounded-2xl flex items-center justify-between gap-4 animate-in fade-in duration-300">
+                <div className="max-w-4xl mx-auto mb-4 p-4 bg-rose-50 border border-rose-200/50 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-in slide-in-from-bottom-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-                      <Lock size={16} />
+                    <div className="w-10 h-10 rounded-xl bg-white text-rose-600 flex items-center justify-center shrink-0 shadow-sm">
+                      <Lock size={18} className="stroke-[2.5]" />
                     </div>
                     <div>
-                      <h5 className="text-xs font-extrabold text-rose-950">Usage Limit Reached</h5>
-                      <p className="text-[11px] text-rose-700/80 font-bold mt-0.5">Please purchase credits using M-Pesa to unlock the assistant.</p>
+                      <h5 className="text-sm font-extrabold text-rose-950">Usage Limit Reached</h5>
+                      <p className="text-xs text-rose-700/80 font-bold mt-0.5">Please purchase credits to unlock the AI.</p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => setShowPayModal(true)}
-                    className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold px-4 py-2 rounded-xl transition shadow-md shadow-rose-950/15 cursor-pointer"
-                  >
-                    Buy Credits
+                  <button onClick={() => setShowPayModal(true)} className="bg-rose-600 hover:bg-rose-700 text-white text-sm font-extrabold px-5 py-2.5 rounded-xl transition shadow-md shadow-rose-600/20">
+                    Top Up Now
                   </button>
                 </div>
               )}
 
-              <form onSubmit={handleSend} className="relative flex items-center bg-gray-50 border border-gray-200 rounded-2xl p-3 max-w-4xl mx-auto">
-                <button 
-                  type="button" 
-                  disabled={isLimitReached}
-                  onClick={() => triggerToast("Add document attachment...")}
-                  className="p-2 text-gray-400 hover:text-gray-655 transition cursor-pointer disabled:opacity-40"
-                >
-                  <Paperclip size={20} />
-                </button>
+              <form onSubmit={handleSend} className="relative flex items-center bg-white border border-gray-200 rounded-[2rem] p-2.5 max-w-4xl mx-auto shadow-lg shadow-gray-200/40 focus-within:border-[#004D40]/40 focus-within:ring-4 focus-within:ring-[#004D40]/5 transition-all">
+                
+                <label className={`p-3 text-gray-400 hover:text-[#004D40] bg-gray-50 hover:bg-emerald-50 rounded-full transition cursor-pointer shrink-0 ${isLimitReached ? "opacity-50 pointer-events-none" : ""}`}>
+                  <Paperclip size={20} className="stroke-[2]" />
+                  <input type="file" className="hidden" accept="application/pdf" onChange={handleFileUpload} disabled={!selectedSessionId || isLimitReached} />
+                </label>
                 
                 <input
                   type="text"
                   value={inputVal}
                   onChange={(e) => setInputVal(e.target.value)}
                   placeholder={
-                    isLimitReached 
-                      ? "Chat is locked. Please top up using M-Pesa..." 
-                      : selectedSessionId 
-                        ? "Ask a scholarly question... (e.g. summarize mitosis / notes on licensing)" 
-                        : "Create or select a chat session to begin..."
+                    isLimitReached ? "Chat is locked..." : 
+                    selectedSessionId ? "Ask a scholarly question... (e.g. summarize my notes)" : 
+                    "Select a chat session to begin..."
                   }
                   disabled={!selectedSessionId || isLimitReached}
-                  className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full px-3.5 py-1 font-semibold disabled:cursor-not-allowed"
+                  className="bg-transparent text-sm md:text-base text-gray-800 placeholder-gray-400 outline-none w-full px-4 py-2 font-medium disabled:cursor-not-allowed"
                 />
                 
                 <button 
                   type="submit" 
-                  disabled={!selectedSessionId || isLimitReached}
-                  className="w-10 h-10 bg-[#004D40] hover:bg-[#00382e] text-white rounded-xl flex items-center justify-center shadow-md transition shrink-0 cursor-pointer disabled:bg-gray-200 disabled:text-gray-400"
+                  disabled={!selectedSessionId || isLimitReached || !inputVal.trim()}
+                  className="w-12 h-12 bg-[#004D40] text-white rounded-full flex items-center justify-center shadow-md transition shrink-0 cursor-pointer disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none ml-2"
                 >
-                  <Send size={16} className="stroke-[2.2]" />
+                  <Send size={18} className="stroke-[2.5]" />
                 </button>
               </form>
-              
-              <p className="text-[10px] text-gray-400 font-bold text-center mt-3.5 uppercase tracking-wider">
-                AI can make mistakes. Please verify important citations in the official library archives.
+              <p className="text-[10px] text-gray-400 font-bold text-center mt-4 uppercase tracking-widest">
+                AI can make mistakes. Verify critical academic citations.
               </p>
             </div>
-
           </div>
-
         </div>
 
-        {/* Global Toast */}
         {toast.show && (
-          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-[#004D40] text-white text-xs font-bold px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 z-50 border border-emerald-500/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <CheckCircle2 size={16} className="text-emerald-300 shrink-0" />
+          <div className="fixed top-8 right-8 bg-[#004D40] text-white text-sm font-bold px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 z-50 animate-in slide-in-from-top-4">
+            <CheckCircle2 size={18} className="text-emerald-300" />
             <span>{toast.message}</span>
           </div>
         )}
 
-        {/* M-Pesa STK Push Payment Modal popup Dialog */}
         {showPayModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4 animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-gray-100 flex flex-col gap-6 animate-in zoom-in-95 duration-200">
-              
-              {/* Modal Header */}
-              <div className="flex items-start justify-between border-b border-gray-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
-                    <Coins size={20} className="stroke-[2.2]" />
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+            <div className="bg-white rounded-[2rem] max-w-md w-full p-8 shadow-2xl border border-gray-100 flex flex-col gap-6 animate-in zoom-in-95">
+              <div className="flex items-start justify-between border-b border-gray-100 pb-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#004D40] flex items-center justify-center shadow-sm">
+                    <Coins size={24} className="stroke-[2]" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-extrabold text-gray-900 font-outfit">Top Up Credits</h3>
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-0.5">Safaricom M-Pesa</p>
+                    <h3 className="text-xl font-black text-gray-900 font-outfit">Top Up Credits</h3>
+                    <p className="text-xs text-gray-400 font-extrabold uppercase tracking-widest mt-1">Safaricom M-Pesa</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => {
-                    if (!paying) setShowPayModal(false);
-                  }}
-                  className="text-gray-400 hover:text-gray-700 text-lg font-bold p-1 cursor-pointer"
-                >
-                  ×
+                <button onClick={() => !paying && setShowPayModal(false)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-800 bg-gray-50 hover:bg-gray-100 rounded-full transition">
+                  <X size={16} />
                 </button>
               </div>
 
-              {/* Error/Success display inside modal */}
-              {payError && (
-                <div className="p-3.5 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-bold rounded-xl">
-                  {payError}
-                </div>
-              )}
-              {paySuccess && (
-                <div className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-850 text-xs font-bold rounded-xl flex items-center gap-2">
-                  <CheckCircle2 size={14} />
-                  <span>{paySuccess}</span>
-                </div>
-              )}
+              {payError && <div className="p-4 bg-rose-50 text-rose-700 text-sm font-bold rounded-2xl border border-rose-100">{payError}</div>}
+              {paySuccess && <div className="p-4 bg-emerald-50 text-[#004D40] text-sm font-bold rounded-2xl border border-emerald-100 flex items-center gap-2"><CheckCircle2 size={18} /><span>{paySuccess}</span></div>}
 
-              {/* Payment Form */}
-              <form onSubmit={handlePaymentSubmit} className="space-y-5">
-                
-                {/* Package Options */}
+              <form onSubmit={handlePaymentSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-xs font-extrabold text-gray-500 uppercase tracking-widest mb-2.5">
-                    Select Credit Package
-                  </label>
-                  <div className="grid grid-cols-2 gap-3.5">
-                    <button
-                      type="button"
-                      onClick={() => setPayAmount("50")}
-                      className={`p-4 rounded-2xl border-2 text-left transition flex flex-col justify-between h-24 cursor-pointer ${
-                        payAmount === "50"
-                          ? "border-[#004D40] bg-emerald-50/10 text-[#004D40]"
-                          : "border-gray-150 hover:bg-gray-50 text-gray-700"
-                      }`}
-                    >
-                      <span className="text-xs font-extrabold uppercase tracking-wider">250 Msgs</span>
-                      <span className="text-base font-black font-outfit">KES 50</span>
+                  <label className="block text-xs font-extrabold text-gray-500 uppercase tracking-widest mb-3">Select Package</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button type="button" onClick={() => setPayAmount("50")} className={`p-5 rounded-2xl border-2 text-left transition flex flex-col justify-between h-28 ${payAmount === "50" ? "border-[#004D40] bg-[#004D40]/5" : "border-gray-100 hover:border-gray-200 bg-white"}`}>
+                      <span className={`text-xs font-extrabold uppercase tracking-widest ${payAmount === "50" ? "text-[#004D40]" : "text-gray-500"}`}>250 Msgs</span>
+                      <span className={`text-xl font-black font-outfit ${payAmount === "50" ? "text-[#004D40]" : "text-gray-900"}`}>KES 50</span>
                     </button>
-                    
-                    <button
-                      type="button"
-                      onClick={() => setPayAmount("100")}
-                      className={`p-4 rounded-2xl border-2 text-left transition flex flex-col justify-between h-24 cursor-pointer ${
-                        payAmount === "100"
-                          ? "border-[#004D40] bg-emerald-50/10 text-[#004D40]"
-                          : "border-gray-150 hover:bg-gray-50 text-gray-700"
-                      }`}
-                    >
-                      <span className="text-xs font-extrabold uppercase tracking-wider">500 Msgs</span>
-                      <span className="text-base font-black font-outfit">KES 100</span>
+                    <button type="button" onClick={() => setPayAmount("100")} className={`p-5 rounded-2xl border-2 text-left transition flex flex-col justify-between h-28 ${payAmount === "100" ? "border-[#004D40] bg-[#004D40]/5" : "border-gray-100 hover:border-gray-200 bg-white"}`}>
+                      <span className={`text-xs font-extrabold uppercase tracking-widest ${payAmount === "100" ? "text-[#004D40]" : "text-gray-500"}`}>500 Msgs</span>
+                      <span className={`text-xl font-black font-outfit ${payAmount === "100" ? "text-[#004D40]" : "text-gray-900"}`}>KES 100</span>
                     </button>
                   </div>
                 </div>
 
-                {/* M-Pesa Phone Number input */}
                 <div>
-                  <label className="block text-xs font-extrabold text-gray-500 uppercase tracking-widest mb-2">
-                    M-Pesa Phone Number
-                  </label>
+                  <label className="block text-xs font-extrabold text-gray-500 uppercase tracking-widest mb-3">Phone Number</label>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
-                      <Smartphone size={18} />
-                    </span>
-                    <input
-                      type="text"
-                      required
-                      value={phoneVal}
-                      onChange={(e) => setPhoneVal(e.target.value)}
-                      placeholder="e.g. 0712345678"
-                      disabled={paying}
-                      className="w-full bg-[#f8faf8] border border-gray-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm placeholder-gray-400 focus:outline-none focus:border-[#004D40] shadow-sm transition font-bold text-gray-700"
-                    />
+                    <Smartphone size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input type="text" required value={phoneVal} onChange={(e) => setPhoneVal(e.target.value)} disabled={paying} className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-12 pr-5 py-4 text-sm font-bold text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#004D40] focus:ring-4 focus:ring-[#004D40]/10 transition" />
                   </div>
                 </div>
 
-                {/* Info Text */}
-                <p className="text-[11px] text-gray-400 font-bold leading-normal">
-                  Clicking the button below will initiate an M-Pesa STK Push. Please enter your M-Pesa PIN on your phone prompt to complete the transaction.
-                </p>
-
-                {/* Pay Action button */}
-                <div className="flex gap-3 pt-3 border-t border-gray-100">
-                  <button
-                    type="button"
-                    disabled={paying}
-                    onClick={() => setShowPayModal(false)}
-                    className="flex-1 py-3.5 border border-gray-200 hover:bg-gray-50 text-gray-750 text-sm font-bold rounded-2xl transition cursor-pointer text-center"
-                  >
-                    Cancel
-                  </button>
-                  
-                  <button
-                    type="submit"
-                    disabled={paying || !phoneVal}
-                    className="flex-1 py-3.5 bg-[#004D40] hover:bg-[#00382e] text-white text-sm font-bold rounded-2xl shadow-lg shadow-emerald-950/15 transition cursor-pointer flex items-center justify-center gap-2 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
-                  >
-                    {paying ? (
-                      <>
-                        <div className="w-4.5 h-4.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Processing...</span>
-                      </>
-                    ) : (
-                      <span>Pay KES {payAmount}</span>
-                    )}
-                  </button>
-                </div>
-
+                <button type="submit" disabled={paying || !phoneVal} className="w-full py-4 bg-[#004D40] hover:bg-[#00382e] text-white text-base font-bold rounded-2xl shadow-lg shadow-[#004D40]/20 transition flex items-center justify-center gap-2 disabled:bg-gray-200 disabled:shadow-none">
+                  {paying ? <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>Processing...</span></> : <span>Pay KES {payAmount}</span>}
+                </button>
               </form>
-
             </div>
           </div>
         )}

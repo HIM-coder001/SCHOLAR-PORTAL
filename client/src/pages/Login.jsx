@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Mail, Lock, LogIn } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, LogIn } from "lucide-react";
+
 import libraryMockup from "../assets/images/academic_library_mockup.png";
 
 const Login = () => {
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("scholar@university.edu");
@@ -44,15 +46,46 @@ const Login = () => {
     }
   };
 
-  const handleSocialSignIn = () => {
-    localStorage.setItem("token", "mock-social-token-key-12345");
-    localStorage.setItem("user", JSON.stringify({
+  const handleSocialSignIn = async () => {
+    setAuthError("");
+    const demoUser = {
       fullName: "Alex Rivers",
       email: "alex.rivers@university.edu",
+      password: "demo123456",
       institution: "Stanford University",
-      course: "Computer Science"
-    }));
-    navigate(redirectOrigin, { replace: true });
+      course: "Computer Science",
+    };
+
+    try {
+      // Try login first
+      let response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: demoUser.email, password: demoUser.password }),
+      });
+
+      // If user doesn't exist yet, register them
+      if (!response.ok) {
+        response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(demoUser),
+        });
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        setAuthError(data.message || "Social sign-in failed.");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      navigate(redirectOrigin, { replace: true });
+    } catch (error) {
+      console.error("Social Sign-In Error:", error);
+      setAuthError("Network error. Make sure the server is running.");
+    }
   };
 
   return (
@@ -105,9 +138,11 @@ const Login = () => {
             {/* Logo */}
             <div className="flex items-center gap-2.5 mb-10">
               <div className="w-10 h-10 rounded-xl bg-[#004D40] flex items-center justify-center shadow-lg shadow-emerald-950/20">
-                <svg viewBox="0 0 32 32" fill="none" className="w-6 h-6 text-white">
-                  <path d="M8 22L16 10L24 22" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M10 19h12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6">
+                  <path d="M12 3L2 8l10 5 10-5-10-5z" fill="white" stroke="white" strokeWidth="0.5" strokeLinejoin="round" />
+                  <path d="M6 10.5v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M20 8v5.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="20" cy="14.5" r="1" fill="white" />
                 </svg>
               </div>
               <span className="text-2xl font-black text-[#004D40] tracking-tight font-outfit">ScholarHub</span>
@@ -160,13 +195,16 @@ const Login = () => {
                     <Lock size={18} />
                   </span>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm placeholder-gray-400 focus:outline-none focus:border-[#004D40] focus:ring-1 focus:ring-[#004D40] shadow-sm transition font-medium"
+                    className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-12 py-3.5 text-sm placeholder-gray-400 focus:outline-none focus:border-[#004D40] focus:ring-1 focus:ring-[#004D40] shadow-sm transition font-medium"
                   />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
 

@@ -1,3 +1,13 @@
+// Graduation Cap SVG icon for footer branding
+const GraduationCapIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" width={14} height={14}>
+    <path d="M12 3L2 8l10 5 10-5-10-5z" fill="white" stroke="white" strokeWidth="0.5" strokeLinejoin="round" />
+    <path d="M6 10.5v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M20 8v5.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+    <circle cx="20" cy="14.5" r="1" fill="white" />
+  </svg>
+);
+
 const Footer = () => {
   const footerLinks = ["About", "Contact", "Privacy Policy", "Terms of Service"];
  
@@ -6,12 +16,8 @@ const Footer = () => {
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 flex items-center justify-center shrink-0">
-            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5">
-              <rect width="32" height="32" rx="6" fill="#004D40" />
-              <path d="M8 22L16 10L24 22" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M10 19h12" stroke="white" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+          <div className="w-6 h-6 rounded-md bg-[#004D40] flex items-center justify-center shrink-0">
+            <GraduationCapIcon />
           </div>
           <span className="text-[#004D40] font-extrabold text-sm tracking-tight font-outfit">ScholarHub</span>
         </div>
@@ -27,7 +33,7 @@ const Footer = () => {
             <a
               key={link}
               href={`#${link.toLowerCase().replace(" ", "-")}`}
-              className="text-gray-500 hover:text-gray-800 transition"
+              className="text-gray-500 hover:text-[#004D40] transition"
             >
               {link}
             </a>

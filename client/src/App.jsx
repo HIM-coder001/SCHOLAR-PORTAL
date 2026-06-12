@@ -10,6 +10,7 @@ import Bookmarks from "./pages/Bookmarks";
 import Downloads from "./pages/Downloads";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import Projects from "./pages/Projects";
 
 // Route guard component
 const ProtectedRoute = ({ children }) => {
@@ -52,6 +53,10 @@ const App = () => {
       <Route 
         path="/notes" 
         element={<ProtectedRoute><Notes /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/projects" 
+        element={<ProtectedRoute><Projects /></ProtectedRoute>} 
       />
       <Route 
         path="/bookmarks" 

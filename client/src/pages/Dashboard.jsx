@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/shared/Sidebar";
 import Footer from "../components/shared/Footer";
+import { Link } from "react-router-dom";
 import { 
   Search, 
   Mic, 
@@ -16,7 +17,8 @@ import {
   FileText, 
   Bookmark,
   CheckCircle2,
-  Trash2
+  Trash2,
+  FolderKanban
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -75,37 +77,8 @@ const Dashboard = () => {
     }
   };
 
-  const handleCreateNote = async () => {
-    const title = prompt("Enter Note Title:");
-    if (!title) return;
-    const content = prompt("Enter Note Content (optional):");
-
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/notes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ title, content: content || "" })
-      });
-
-      if (res.ok) {
-        const newNote = await res.json();
-        setNotes((prev) => [newNote, ...prev]);
-        triggerToast(`Created note: "${title}"`);
-      } else {
-        triggerToast("Failed to create note.");
-      }
-    } catch (err) {
-      console.error("Create note error:", err);
-      triggerToast("Error connecting to server.");
-    }
-  };
-
   const handleDeleteNote = async (id, title) => {
-    if (!confirm(`Are you sure you want to delete note "${title}"?`)) return;
+    if (!window.confirm(`Are you sure you want to delete note "${title}"?`)) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -126,7 +99,7 @@ const Dashboard = () => {
     }
   };
 
-  // Static list for recommended cover section (visually matches layout)
+  // Static list for recommended cover section
   const recommendedItems = [
     {
       category: "RESEARCH JOURNAL",
@@ -185,146 +158,146 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fcfdfc] flex font-sans text-gray-800">
+    <div className="min-h-screen bg-[#f4f7f5] flex font-sans text-gray-800">
       <Sidebar />
 
-      {/* Main Layout (excluding sidebar width 64 => ml-64) */}
-      <div className="ml-64 flex-1 flex flex-col min-h-screen relative">
+      {/* Main Layout — lg: sidebar offset; mobile: full width */}
+      <div className="lg:ml-64 flex-1 flex flex-col min-h-screen relative overflow-hidden">
         
         {/* Top Header */}
-        <header className="flex items-center justify-between px-8 py-3.5 bg-white border-b border-gray-100 sticky top-0 z-10">
-          {/* Search bar */}
-          <div className="flex-1 max-w-lg flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-2">
+        <header className="flex items-center justify-between px-6 md:px-10 py-4 bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-10">
+          {/* Search bar with ml-12 for mobile hamburger menu clearance */}
+          <div className="flex-1 max-w-lg flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-full px-5 py-2.5 ml-12 lg:ml-0 transition-shadow focus-within:shadow-md focus-within:border-[#004D40]/30">
             <Search size={18} className="text-gray-400 shrink-0" />
             <input
               type="text"
               placeholder="Search resources, papers, or notes..."
-              className="bg-transparent text-sm text-gray-600 placeholder-gray-400 outline-none w-full font-medium"
+              className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full font-medium"
             />
-            <Mic size={16} className="text-gray-400 shrink-0 cursor-pointer hover:text-gray-600" />
+            <Mic size={18} className="text-gray-400 shrink-0 cursor-pointer hover:text-[#004D40] transition" />
           </div>
 
           {/* User profile & actions */}
-          <div className="flex items-center gap-5">
-            {/* Bell notification */}
+          <div className="flex items-center gap-6">
             <button 
               onClick={() => triggerToast("You have no new notifications.")}
-              className="relative p-2 text-gray-500 hover:text-gray-700 transition cursor-pointer"
+              className="relative p-2.5 text-gray-500 hover:text-[#004D40] bg-gray-50 hover:bg-emerald-50 rounded-full transition cursor-pointer"
             >
-              <Bell size={22} className="stroke-[1.8]" />
-              <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
+              <Bell size={20} className="stroke-[2]" />
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
             </button>
 
             {/* User Meta Card */}
-            <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-3">
               <div className="text-right">
                 <h4 className="text-sm font-extrabold text-gray-900 font-outfit leading-none">
                   {fullName}
                 </h4>
-                <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-widest leading-none block mt-1">
+                <span className="text-xs font-bold text-[#004D40] tracking-wide mt-1 block">
                   {userCourse}
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 hover:border-emerald-600 transition cursor-pointer">
+              <Link to="/profile" className="w-11 h-11 rounded-full overflow-hidden border-2 border-gray-200 hover:border-[#004D40] shadow-sm transition cursor-pointer">
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
                   alt="Avatar"
                   className="w-full h-full object-cover"
                 />
-              </div>
+              </Link>
             </div>
           </div>
         </header>
 
         {/* Content Body */}
-        <main className="flex-1 px-8 py-8">
+        <main className="flex-1 px-6 md:px-10 py-8">
           
           {/* Dashboard Greeting Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
             <div>
-              <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight font-outfit mb-2">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight font-outfit mb-3">
                 Academic Hub
               </h1>
-              <p className="text-sm text-gray-500 font-bold">
-                Welcome back, {fullName.split(" ")[0]}. You have <span className="text-emerald-700 font-black">3 pending assignments</span> and <span className="text-emerald-700 font-black">{papers.length} resource papers</span> logged in the library.
+              <p className="text-base text-gray-600 font-medium max-w-2xl">
+                Welcome back, {fullName.split(" ")[0]}. You have <span className="text-[#004D40] font-bold">3 pending assignments</span> and <span className="text-[#004D40] font-bold">{papers.length} resource papers</span> logged in the library. Let's keep the momentum going.
               </p>
             </div>
             
-            <button 
-              onClick={() => triggerToast("Initializing new workspace project...")}
-              className="bg-[#004D40] hover:bg-[#00382e] text-white text-xs font-bold px-5 py-3 rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-950/20 transition shrink-0 cursor-pointer self-start md:self-auto"
+            <Link 
+              to="/projects"
+              className="bg-[#004D40] hover:bg-[#00382e] text-white text-sm font-bold px-6 py-3.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-[#004D40]/20 transition shrink-0 self-start md:self-auto hover:-translate-y-0.5"
             >
-              <Plus size={18} />
-              <span>New Project</span>
-            </button>
+              <FolderKanban size={18} />
+              <span>Go to Projects</span>
+            </Link>
           </div>
 
           {/* Main Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             
             {/* Left 2 Columns */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="xl:col-span-2 space-y-8">
               
               {/* AI Study Insights widget */}
-              <div className="bg-emerald-50/40 border border-emerald-100/60 rounded-[28px] p-6">
-                <div className="flex items-center gap-2.5 mb-4.5">
-                  <div className="p-2 bg-emerald-100 rounded-lg text-emerald-800">
-                    <Brain size={18} className="stroke-[2.2]" />
+              <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/40 border border-emerald-100/80 rounded-[2rem] p-7 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 bg-white shadow-sm rounded-xl text-[#004D40]">
+                    <Brain size={22} className="stroke-[2.2]" />
                   </div>
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-emerald-900">
+                  <h3 className="text-sm font-extrabold uppercase tracking-widest text-[#004D40]">
                     AI Study Insights
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   
                   {/* Focus Areas */}
-                  <div className="bg-white border border-emerald-100/40 rounded-2xl p-4.5 flex flex-col justify-between min-h-[130px]">
+                  <div className="bg-white/80 backdrop-blur-sm border border-white rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition min-h-[150px]">
                     <div>
-                      <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
                         Focus Areas
                       </h4>
-                      <p className="text-xs text-gray-700 leading-relaxed font-semibold">
-                        Your performance in 'Cognitive Models' has dipped. Consider reviewing the 2023 Past Papers.
+                      <p className="text-sm text-gray-800 leading-relaxed font-semibold">
+                        Your performance in <span className="text-amber-600">Cognitive Models</span> has dipped. Consider reviewing the 2023 Past Papers.
                       </p>
                     </div>
                   </div>
 
                   {/* Schedule Optimization */}
-                  <div className="bg-white border border-emerald-100/40 rounded-2xl p-4.5 flex flex-col justify-between min-h-[130px]">
+                  <div className="bg-white/80 backdrop-blur-sm border border-white rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition min-h-[150px]">
                     <div>
-                      <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                        Schedule Optimization
+                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                        Optimal Time
                       </h4>
-                      <p className="text-xs text-gray-700 leading-relaxed font-semibold">
-                        You're most productive between 10 AM and 1 PM. Schedule your deep reading then.
+                      <p className="text-sm text-gray-800 leading-relaxed font-semibold">
+                        You're most productive between <span className="text-[#004D40]">10 AM and 1 PM</span>. Schedule your deep reading then.
                       </p>
                     </div>
                   </div>
 
                   {/* Live Recommendation */}
-                  <div className="bg-emerald-800 text-white rounded-2xl p-4.5 flex flex-col justify-between min-h-[130px] shadow-sm">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
-                        <h4 className="text-[9px] font-bold uppercase tracking-widest text-emerald-300">
-                          Live Recommendation
+                  <div className="bg-[#004D40] text-white rounded-3xl p-6 flex flex-col justify-between shadow-lg shadow-[#004D40]/20 min-h-[150px] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-300">
+                          Live Match
                         </h4>
                       </div>
-                      <h5 className="text-xs font-bold font-outfit mb-1 truncate">
-                        Neuroplasticity: A Deep Dive
+                      <h5 className="text-base font-bold font-outfit mb-2 leading-tight">
+                        Neuroplasticity: Deep Dive
                       </h5>
-                      <p className="text-[11px] text-emerald-100/90 leading-relaxed font-medium">
-                        A newly added thesis paper aligns perfectly with your current thesis draft.
+                      <p className="text-xs text-emerald-100/90 leading-relaxed font-medium line-clamp-2">
+                        A newly added thesis paper aligns perfectly with your draft.
                       </p>
                     </div>
                     
                     <button 
-                      onClick={() => triggerToast('Opening "Neuroplasticity: A Deep Dive" analysis...')}
-                      className="flex items-center gap-1.5 text-xs font-bold text-emerald-300 hover:text-white transition mt-2 cursor-pointer self-start"
+                      onClick={() => triggerToast('Opening Analysis...')}
+                      className="relative z-10 flex items-center gap-2 text-sm font-bold text-emerald-300 hover:text-white transition mt-4 self-start"
                     >
                       <span>Analyze now</span>
-                      <ArrowRight size={12} />
+                      <ArrowRight size={14} />
                     </button>
                   </div>
 
@@ -333,61 +306,56 @@ const Dashboard = () => {
 
               {/* Recommended For You Section */}
               <div>
-                <h3 className="text-sm font-bold text-gray-800 mb-4 font-outfit uppercase tracking-wider">
-                  Recommended for You
-                </h3>
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-lg font-extrabold text-gray-900 font-outfit tracking-wide">
+                    Recommended for You
+                  </h3>
+                  <Link to="/past-papers" className="text-sm font-bold text-[#004D40] hover:underline">View Library</Link>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
                   {recommendedItems.map((item, idx) => (
                     <div 
                       key={idx} 
-                      className="bg-white border border-gray-150 rounded-2xl overflow-hidden hover:shadow-md hover:border-emerald-100 transition duration-300 flex flex-col justify-between"
+                      className="bg-white border border-gray-200/60 rounded-[24px] overflow-hidden hover:shadow-xl hover:shadow-gray-200/50 hover:-translate-y-1 transition duration-300 flex flex-col justify-between group"
                     >
-                      <div className="relative">
+                      <div className="relative overflow-hidden">
                         <img 
                           src={item.image} 
                           alt={item.title} 
-                          className="w-full h-32 object-cover"
+                          className="w-full h-36 object-cover group-hover:scale-105 transition duration-500"
                         />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         {item.isNew && (
-                          <span className="absolute top-2.5 right-2.5 bg-[#004D40] text-white text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md shadow-sm">
+                          <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-[#004D40] text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-lg shadow-sm">
                             New
                           </span>
                         )}
                       </div>
 
-                      <div className="p-4 flex-1 flex flex-col justify-between">
+                      <div className="p-5 flex-1 flex flex-col justify-between bg-white">
                         <div>
-                          <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest block mb-1">
+                          <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-widest block mb-2">
                             {item.category}
                           </span>
-                          <h4 className="text-xs font-extrabold text-gray-800 leading-snug line-clamp-2">
+                          <h4 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2">
                             {item.title}
                           </h4>
                         </div>
 
-                        <div className="flex items-center justify-between pt-3 mt-4 border-t border-gray-50">
-                          <span className="text-[11px] font-bold text-gray-400">
+                        <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
+                          <span className="text-xs font-bold text-gray-500">
                             {item.info}
                           </span>
                           
-                          {/* Mini icon triggers */}
                           <button 
                             onClick={() => triggerToast(`Saved "${item.title}" to library.`)}
-                            className="text-gray-400 hover:text-[#004D40] transition cursor-pointer p-1"
+                            className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-[#004D40] text-gray-500 hover:text-white rounded-full transition cursor-pointer"
                           >
-                            {item.iconType === "avatars" && (
-                              <Bookmark size={16} className="stroke-[2]" />
-                            )}
-                            {item.iconType === "play" && (
-                              <Play size={15} className="fill-emerald-850 text-emerald-800 stroke-[2.2]" />
-                            )}
-                            {item.iconType === "download" && (
-                              <Download size={16} className="stroke-[2.2]" />
-                            )}
-                            {item.iconType === "book" && (
-                              <BookOpen size={16} className="stroke-[2]" />
-                            )}
+                            {item.iconType === "avatars" && <Bookmark size={14} className="stroke-[2.5]" />}
+                            {item.iconType === "play" && <Play size={14} className="stroke-[2.5] ml-0.5" />}
+                            {item.iconType === "download" && <Download size={14} className="stroke-[2.5]" />}
+                            {item.iconType === "book" && <BookOpen size={14} className="stroke-[2.5]" />}
                           </button>
                         </div>
                       </div>
@@ -396,41 +364,44 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Trending Past Papers list from DB */}
-              <div className="bg-white border border-gray-150 rounded-[28px] p-6">
-                <h3 className="text-sm font-bold text-gray-800 mb-4 font-outfit uppercase tracking-wider">
-                  Trending Past Papers
-                </h3>
+              {/* Trending Past Papers */}
+              <div className="bg-white border border-gray-200/60 rounded-[2rem] p-8 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-extrabold text-gray-900 font-outfit tracking-wide">
+                    Trending Past Papers
+                  </h3>
+                  <Link to="/past-papers" className="text-sm font-bold text-[#004D40] hover:underline">Explore All</Link>
+                </div>
 
-                <div className="space-y-4">
-                  {papers.filter(p => !p.isFeatured).slice(0, 3).map((paper, i) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {papers.filter(p => !p.isFeatured).slice(0, 4).map((paper, i) => (
                     <div 
                       key={paper._id} 
                       onClick={() => triggerToast(`Viewing syllabus module for "${paper.title}" (${paper.module})...`)}
-                      className="flex items-center justify-between p-4 rounded-2xl bg-gray-50/50 hover:bg-emerald-50/15 border border-gray-100 hover:border-emerald-100 transition duration-200 cursor-pointer"
+                      className="group flex items-center justify-between p-5 rounded-3xl bg-gray-50 hover:bg-[#004D40]/5 border border-transparent hover:border-[#004D40]/20 transition duration-300 cursor-pointer"
                     >
-                      <div className="flex items-center gap-4.5">
-                        <span className="text-xl font-black text-emerald-850 font-outfit">
-                          {`0${i + 1}`}
-                        </span>
+                      <div className="flex items-center gap-5">
+                        <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl font-black text-gray-400 group-hover:text-[#004D40] group-hover:shadow-md transition">
+                          0{i + 1}
+                        </div>
                         <div>
-                          <h4 className="text-xs font-bold text-gray-900">
-                            {paper.title} - {paper.semester}
+                          <h4 className="text-sm font-bold text-gray-900 group-hover:text-[#004D40] transition">
+                            {paper.title}
                           </h4>
-                          <p className="text-[11px] text-gray-400 font-bold mt-0.5">
-                            Instructed by {paper.instructor} • {paper.downloads + 620} downloads
+                          <p className="text-xs text-gray-500 font-medium mt-1">
+                            {paper.module} • {paper.semester}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="text-emerald-700">
-                        <TrendingUp size={18} />
+                      <div className="text-gray-300 group-hover:text-[#004D40] transition p-2 bg-white rounded-full shadow-sm">
+                        <TrendingUp size={16} className="stroke-[2.5]" />
                       </div>
                     </div>
                   ))}
 
                   {papers.length === 0 && (
-                    <div className="text-center p-6 bg-gray-50/50 rounded-2xl border border-dashed text-xs text-gray-400 font-bold">
+                    <div className="col-span-2 text-center p-10 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 text-sm text-gray-500 font-bold">
                       No papers loaded from server database yet.
                     </div>
                   )}
@@ -440,34 +411,34 @@ const Dashboard = () => {
             </div>
 
             {/* Right Panel - Downloads & Notes */}
-            <div className="space-y-6">
+            <div className="space-y-8">
               
               {/* Recent Downloads widget */}
-              <div className="bg-white border border-gray-150 rounded-[28px] p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-800 font-outfit">
+              <div className="bg-white border border-gray-200/60 rounded-[2rem] p-7 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-base font-extrabold text-gray-900 font-outfit tracking-wide">
                     Recent Downloads
                   </h3>
-                  <a href="#downloads" className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider hover:underline">
+                  <Link to="/downloads" className="text-xs font-bold text-[#004D40] uppercase tracking-wider hover:underline">
                     View All
-                  </a>
+                  </Link>
                 </div>
 
-                <div className="space-y-3.5">
+                <div className="space-y-4">
                   {downloads.map((item, idx) => (
                     <div 
                       key={idx} 
                       onClick={() => triggerToast(`Opening local file "${item.title}"...`)}
-                      className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-gray-100/60 hover:shadow-sm hover:border-emerald-100 transition duration-200 bg-white cursor-pointer"
+                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 border border-gray-100 transition duration-200 cursor-pointer group"
                     >
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${item.iconBg} ${item.iconColor} font-black text-xs`}>
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${item.iconBg} ${item.iconColor} font-black text-sm shadow-sm group-hover:scale-105 transition-transform`}>
                         {item.ext}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold text-gray-800 truncate">
+                        <h4 className="text-sm font-bold text-gray-800 truncate group-hover:text-[#004D40] transition">
                           {item.title}
                         </h4>
-                        <p className="text-[10px] text-gray-400 font-bold mt-0.5">
+                        <p className="text-xs text-gray-500 font-medium mt-1">
                           {item.details}
                         </p>
                       </div>
@@ -475,15 +446,15 @@ const Dashboard = () => {
                   ))}
 
                   {/* Active downloading indicator */}
-                  <div className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/20">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-100 text-emerald-800">
-                      <div className="w-5 h-5 border-2 border-emerald-800 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed border-[#004D40]/30 bg-emerald-50/30">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-white text-[#004D40] shadow-sm">
+                      <div className="w-5 h-5 border-2 border-[#004D40] border-t-transparent rounded-full animate-spin"></div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-emerald-900 truncate">
+                      <h4 className="text-sm font-bold text-gray-900 truncate">
                         Downloading...
                       </h4>
-                      <p className="text-[10px] text-emerald-700/70 font-bold mt-0.5">
+                      <p className="text-xs text-[#004D40] font-bold mt-1">
                         Sociology_Module_5.zip
                       </p>
                     </div>
@@ -491,84 +462,82 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Recently Added Notes widget (database-driven!) */}
-              <div className="bg-white border border-gray-150 rounded-[28px] p-6">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-800 font-outfit mb-4">
-                  Recently Added Notes
-                </h3>
+              {/* Recently Added Notes widget */}
+              <div className="bg-white border border-gray-200/60 rounded-[2rem] p-7 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-base font-extrabold text-gray-900 font-outfit tracking-wide">
+                    Recent Notes
+                  </h3>
+                  <Link to="/notes" className="text-xs font-bold text-[#004D40] uppercase tracking-wider hover:underline">
+                    Manage Notes
+                  </Link>
+                </div>
 
-                <div className="space-y-3.5">
+                <div className="space-y-4">
                   {loadingNotes ? (
-                    <div className="text-center p-4 text-xs text-gray-400 font-bold">Loading your notes...</div>
-                  ) : (
-                    notes.map((note) => (
+                    <div className="animate-pulse space-y-4">
+                      {[1, 2].map((i) => (
+                        <div key={i} className="h-20 bg-gray-100 rounded-2xl"></div>
+                      ))}
+                    </div>
+                  ) : notes.length > 0 ? (
+                    notes.slice(0, 3).map((note) => (
                       <div 
                         key={note._id}
-                        onClick={() => triggerToast(`Note Content: "${note.content || '(empty note)'}"`)}
-                        className="bg-[#FAF8F5] border border-amber-250/30 rounded-2xl p-4.5 relative group hover:shadow-md hover:border-amber-250/70 transition cursor-pointer"
+                        className="p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-white hover:border-gray-200 hover:shadow-md transition duration-300 group"
                       >
-                        {/* Delete Note button */}
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteNote(note._id, note.title);
-                          }}
-                          className="absolute top-4.5 right-4.5 text-rose-500 opacity-0 group-hover:opacity-100 hover:scale-110 transition p-1 bg-white rounded-lg shadow-sm border border-gray-100"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                        
-                        <span className="text-[10px] font-bold text-gray-400 absolute top-4.5 right-4.5 group-hover:hidden flex items-center gap-1.5">
-                          <Clock size={11} /> {new Date(note.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
-                        </span>
-                        
-                        <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 mb-3.5 border border-amber-200/10">
-                          <FileText size={16} />
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-sm font-bold text-gray-900 line-clamp-1 group-hover:text-[#004D40] transition">
+                            {note.title}
+                          </h4>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteNote(note._id, note.title);
+                            }}
+                            className="p-1.5 text-gray-400 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
-                        
-                        <h4 className="text-sm font-extrabold text-gray-900 truncate pr-14">
-                          {note.title}
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-2 leading-relaxed line-clamp-2">
-                          {note.content || "Empty Note content."}
+                        <p className="text-xs text-gray-500 font-medium line-clamp-2 leading-relaxed mb-3">
+                          {note.content || "No content summary available."}
                         </p>
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                          <Clock size={12} />
+                          <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                        </div>
                       </div>
                     ))
-                  )}
-
-                  {!loadingNotes && notes.length === 0 && (
-                    <div className="text-center p-6 bg-gray-50/50 rounded-2xl border border-dashed text-xs text-gray-400 font-bold">
-                      No notes created yet.
+                  ) : (
+                    <div className="text-center p-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center">
+                      <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-400 mb-3">
+                        <FileText size={20} />
+                      </div>
+                      <p className="text-sm text-gray-500 font-bold mb-3">No notes created yet.</p>
+                      <Link to="/notes" className="text-xs font-extrabold text-[#004D40] bg-emerald-50 px-4 py-2 rounded-lg hover:bg-[#004D40] hover:text-white transition">
+                        Create your first note
+                      </Link>
                     </div>
                   )}
-
-                  {/* Create Quick Note dotted button */}
-                  <button 
-                    onClick={handleCreateNote}
-                    className="w-full py-4.5 border-2 border-dashed border-gray-200 hover:border-emerald-600 hover:bg-[#004D40]/5 rounded-2xl flex items-center justify-center gap-2.5 text-xs font-bold text-gray-500 hover:text-emerald-800 transition cursor-pointer"
-                  >
-                    <Plus size={18} />
-                    <span>Create Quick Note</span>
-                  </button>
-
                 </div>
               </div>
 
             </div>
-
           </div>
-
         </main>
 
         <Footer />
+      </div>
 
-        {/* Global Toast Alert */}
-        {toast.show && (
-          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-[#004D40] text-white text-xs font-bold px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 z-50 border border-emerald-500/30 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <CheckCircle2 size={16} className="text-emerald-300 shrink-0" />
-            <span>{toast.message}</span>
-          </div>
-        )}
+      {/* Global Toast */}
+      <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-400 ${
+        toast.show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+      }`}>
+        <div className="bg-gray-900 text-white text-sm font-bold px-6 py-3.5 rounded-full shadow-2xl flex items-center gap-3">
+          <CheckCircle2 size={18} className="text-emerald-400" />
+          {toast.message}
+        </div>
       </div>
     </div>
   );
