@@ -17,7 +17,7 @@ router.get("/", authMiddleware, async (req, res) => {
 // POST create note
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { title, content } = req.body;
+    const { title, content, tag, color } = req.body;
     if (!title) {
       return res.status(400).json({ message: "Note title is required." });
     }
@@ -26,6 +26,8 @@ router.post("/", authMiddleware, async (req, res) => {
       userId: req.userId,
       title,
       content,
+      tag:   tag   || "Note",
+      color: color ?? 0,
     });
     await note.save();
 
@@ -33,6 +35,31 @@ router.post("/", authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("Create Note Error:", error);
     res.status(500).json({ message: "Server error creating note." });
+  }
+});
+
+// PUT update note
+router.put("/:id", authMiddleware, async (req, res) => {
+  try {
+    const { title, content, tag, color } = req.body;
+    if (!title) {
+      return res.status(400).json({ message: "Note title is required." });
+    }
+
+    const note = await Note.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      { title, content, tag, color },
+      { new: true }
+    );
+
+    if (!note) {
+      return res.status(404).json({ message: "Note not found or unauthorized." });
+    }
+
+    res.json(note);
+  } catch (error) {
+    console.error("Update Note Error:", error);
+    res.status(500).json({ message: "Server error updating note." });
   }
 });
 

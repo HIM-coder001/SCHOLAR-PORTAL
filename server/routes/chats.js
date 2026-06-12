@@ -45,6 +45,12 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
+const multer = require("multer");
+const pdfParse = require("pdf-parse");
+
+// Setup multer for memory storage
+const upload = multer({ storage: multer.memoryStorage() });
+
 // GET messages in a session
 router.get("/:sessionId/messages", authMiddleware, async (req, res) => {
   try {
@@ -61,7 +67,68 @@ router.get("/:sessionId/messages", authMiddleware, async (req, res) => {
   }
 });
 
-// POST message to a session (Send User message & auto-generate mock AI response)
+// POST upload PDF
+router.post("/:sessionId/upload", authMiddleware, upload.single("document"), async (req, res) => {
+  try {
+    const session = await ChatSession.findOne({ _id: req.params.sessionId, userId: req.userId });
+    if (!session) {
+      return res.status(403).json({ message: "Access denied or session not found." });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user || user.messageCount >= user.messageLimit) {
+      return res.status(403).json({ message: "Usage limit reached. Please top up." });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+
+    // Parse PDF text
+    const data = await pdfParse(req.file.buffer);
+    
+    // Save context for subsequent chat turns (up to 50,000 characters)
+    session.documentContext = data.text ? data.text.substring(0, 50000) : "";
+    session.documentName = req.file.originalname;
+    await session.save();
+
+    const extractedText = data.text ? data.text.substring(0, 500) : ""; // Take first 500 chars as summary
+
+    // 1. Save user file message
+    const userMessage = new ChatMessage({
+      sessionId: req.params.sessionId,
+      sender: "user",
+      text: `Attached document: ${req.file.originalname}`,
+      attachment: req.file.originalname,
+    });
+    await userMessage.save();
+    
+    user.messageCount += 1;
+    await user.save();
+
+    // 2. Generate AI response based on parsed text
+    const aiText = `### 📄 PDF Document Analysis: \`${req.file.originalname}\`\n\nI have parsed the document. Here is a brief extract from the beginning:\n\n> *"${extractedText.replace(/\\n/g, " ")}..."*\n\n**What would you like me to do with this?** I can summarize it further, extract key notes, or answer specific questions.`;
+    
+    const aiMessage = new ChatMessage({
+      sessionId: req.params.sessionId,
+      sender: "ai",
+      text: aiText,
+    });
+    await aiMessage.save();
+
+    res.status(201).json({
+      userMessage,
+      aiMessage,
+      messageCount: user.messageCount,
+      messageLimit: user.messageLimit
+    });
+  } catch (error) {
+    console.error("PDF Upload Error:", error);
+    res.status(500).json({ message: "Server error parsing PDF." });
+  }
+});
+
+// POST message to a session (Send User message & Gemini / fallback response)
 router.post("/:sessionId/messages", authMiddleware, async (req, res) => {
   try {
     const { text, attachment } = req.body;
@@ -100,76 +167,112 @@ router.post("/:sessionId/messages", authMiddleware, async (req, res) => {
     user.messageCount += 1;
     await user.save();
 
-    // 2. Generate upgraded mock AI response text
+    // 2. Generate Gemini or fallback response
     let aiText = "";
-    const query = text.toLowerCase().trim();
+    
+    // Check if Gemini API key exists
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey) {
+      try {
+        // Fetch last 15 messages for conversational history
+        const previousMessages = await ChatMessage.find({ sessionId: session._id }).sort({ createdAt: 1 }).limit(15);
+        
+        // Build the contents array for Gemini API
+        const contents = [];
+        for (const msg of previousMessages) {
+          if (!msg.text) continue;
+          contents.push({
+            role: msg.sender === "user" ? "user" : "model",
+            parts: [{ text: msg.text }]
+          });
+        }
+        
+        const systemInstructionText = "You are Scholar Assistant, an advanced academic AI tutor. Help the student analyze papers, summarize articles, generate study notes, and learn concepts. Be concise, academic, professional, and helpful. Format your responses in clean, beautiful Markdown. Use LaTeX notation for formulas (e.g. $O(n \\log n)$ or $$E = mc^2$$). Important: Ensure your response only uses Markdown structure compatible with a simple line-by-line parser (### headers, * bullet points, and > blockquotes. Avoid code blocks, custom table grids, and complex indentation).";
+        
+        let systemPrompt = systemInstructionText;
+        if (session.documentContext) {
+          systemPrompt += `\n\n[DOCUMENT CONTEXT]: The student has uploaded a PDF document named "${session.documentName}". Here is the content of the document:\n"""\n${session.documentContext}\n"""\nUse this context to answer questions about the document. If the user asks about the document, reference its contents accurately.`;
+        }
 
-    if (query.includes("summarize") || query.includes("summary")) {
-      // Summary Mode
-      const topic = text.replace(/summarize|summary|of|about/ig, "").trim();
-      const displayTopic = topic ? `"${topic}"` : "your provided context";
-      aiText = `### 📝 Study Summary: ${displayTopic || "Overview"}
+        const requestBody = {
+          contents,
+          systemInstruction: {
+            parts: [{ text: systemPrompt }]
+          },
+          generationConfig: {
+            maxOutputTokens: 2048,
+            temperature: 0.7,
+          }
+        };
 
-Here is a high-level summary matching the main highlights of this subject:
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestBody)
+        });
 
-* **Core Theme**: Focused analysis on foundational concepts, structural dependencies, and execution workflows.
-* **Key Arguments**:
-  1. Systematic approach simplifies complex learning patterns.
-  2. Incremental verification guarantees stable outputs.
-  3. Integration of smart tools bridges user requirements with live engines.
-* **Critical Takeaway**: Structuring topic scopes into compact modular points significantly boosts retention and study efficiency.
+        if (geminiRes.ok) {
+          const geminiData = await geminiRes.json();
+          if (geminiData.candidates && geminiData.candidates[0]?.content?.parts?.[0]?.text) {
+            aiText = geminiData.candidates[0].content.parts[0].text;
+          }
+        } else {
+          const errText = await geminiRes.text();
+          console.error("Gemini API Error details:", errText);
+        }
+      } catch (geminiError) {
+        console.error("Gemini API Invocation Error:", geminiError);
+      }
+    }
 
-*Let me know if you would like to expand on any specific section!*`;
-    } 
-    else if (query.includes("note") || query.includes("notes")) {
-      // Short Notes Mode
-      const topic = text.replace(/notes|note|on|about/ig, "").trim();
-      const displayTopic = topic ? `"${topic}"` : "this academic subject";
-      aiText = `### 📚 Revision Cheat-Sheet: ${displayTopic}
+    if (!aiText) {
+      // Fallback Sandbox Engine
+      const query = text.toLowerCase().trim();
+      const apiKeyNotice = "\n\n*(Note: Scholar Assistant is running in Sandbox Mode. Configure MONGODB_URI & GEMINI_API_KEY in server/.env for live AI responses).*";
 
-Below are quick short notes designed for exam review and prompt retention:
+      let answeredFromDoc = false;
 
-1. **Mitosis Phases (PMAT)**:
-   - **Prophase**: Chromatin condenses, spindle fibers form.
-   - **Metaphase**: Chromosomes line up along the equator.
-   - **Anaphase**: Sister chromatids are separated to opposite poles.
-   - **Telophase**: Nuclear membranes reform, cytokinesis initiates.
-2. **Permissive Licenses**:
-   - **MIT**: Highly permissive; requires copyright notice. No warranty.
-   - **BSD**: Similar to MIT, but 3-clause adds restriction on using contributors' names for endorsements without permission.
-3. **Core Formula References**:
-   - $\\sum_{i=1}^n X_i$ represents cumulative dataset values.
-   - $GDP = C + I + G + (X - M)$ (Macroeconomic market output).
+      if (session.documentContext) {
+        const context = session.documentContext;
+        const sentences = context.split(/[.!?\n]/).map(s => s.trim()).filter(s => s.length > 15);
+        const queryWords = query.replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(w => w.length > 3 && !["what", "that", "this", "have", "with", "from", "your", "about", "could", "were", "they", "them", "then", "there", "some", "more", "most"].includes(w));
+        
+        let matchingSentences = [];
+        if (queryWords.length > 0) {
+          matchingSentences = sentences.filter(s => {
+            const sLower = s.toLowerCase();
+            return queryWords.some(w => sLower.includes(w));
+          });
+        }
 
-*Keep these notes bookmarked in your revision dashboard!*`;
-    } 
-    else if (query.includes("pdf") || query.includes("read") || attachment) {
-      // PDF/Document extraction Mode
-      const docName = attachment || "uploaded_scholarly_document.pdf";
-      aiText = `### 📄 PDF Document Analysis: \`${docName}\`
+        const extract = matchingSentences.slice(0, 3).join(". ");
+        if (extract) {
+          aiText = `### 📄 Analysis of "${session.documentName}"\n\nI scanned the document context and found the following relevant highlights:\n\n> *"${extract}..."*\n\nBased on these details, the paper touches on concepts related to **${queryWords.slice(0, 3).join(", ")}**. Let me know if you want me to expand on these points or outline other chapters!${apiKeyNotice}`;
+          answeredFromDoc = true;
+        }
+      }
 
-I have successfully parsed the document structure. Here is the metadata and analysis summary:
-
-* **Document Name**: \`${docName}\`
-* **Size**: 2.4 MB • **Pages Analyzed**: 12 pages
-* **Extracted Highlights**:
-  - Contains class notes detailing algorithmic structures and time complexities ($O(n \\log n)$ vs $O(n^2)$).
-  - Outlines the differences in licensing (GNU GPL copyleft vs permissive BSD).
-  - Recommends mock revision guidelines for upcoming final exams.
-* **Recommended Next Step**: Ask me to *"create short notes"* on the algorithms discussed in page 4 of the PDF.`;
-    } 
-    else {
-      // General Q&A Mode
-      const keyword = text.split(" ").slice(-2).join(" ").replace(/[?.!]/g, "");
-      aiText = `### 💡 Academic Response on "${text.length > 30 ? text.substring(0, 30) + "..." : text}"
-
-I have analyzed your question regarding ${keyword ? `*${keyword}*` : "this subject"} and fetched references from the official library archives:
-
-* **Explanation**: The subject involves foundational principles where variables, structural configurations, and workflows are highly correlated. Proper application of these techniques ensures optimized outputs.
-* **Academic Context**: Standard reference texts describe this as a key prerequisite for upper-level academic tracks.
-* **Reference**: *University Academic Library Archives, Section 4.A (2024)*.
-
-How else can I help clarify this topic? I can provide a **summary**, generate **short notes**, or read related **PDFs**!`;
+      if (!answeredFromDoc) {
+        if (query.includes("summarize") || query.includes("summary")) {
+          const topic = text.replace(/summarize|summary|of|about/ig, "").trim();
+          const displayTopic = topic ? `"${topic}"` : "your research context";
+          aiText = `### 📝 Study Summary: ${displayTopic}\n\nHere is a high-level conceptual summary of the topic:\n\n* **Core Theme**: Focused analysis on foundational concepts, structural dependencies, and execution workflows.\n* **Key Insights**:\n  1. Systematic modular approach simplifies complex learning structures.\n  2. Sequential verification guarantees stable outcomes.\n  3. Integration of smart tools bridges user inputs with execution engines.\n* **Critical Takeaway**: Structuring topic scopes into compact bullet points boosts retention and exam prep efficiency.\n\nHow would you like to expand on this? I can create short notes or answer questions.${apiKeyNotice}`;
+        } 
+        else if (query.includes("note") || query.includes("notes") || query.includes("cheat sheet")) {
+          const topic = text.replace(/notes|note|on|about/ig, "").trim();
+          const displayTopic = topic ? `"${topic}"` : "this academic subject";
+          aiText = `### 📚 Revision Notes: ${displayTopic}\n\nHere are study revision notes designed for quick review:\n\n1. **Foundational Principles**: Focus on understanding key definitions, relations, and core constraints.\n2. **Standard Formulas**:\n   - $\\sum_{i=1}^n X_i$ represents the cumulative sum of variables.\n   - $GDP = C + I + G + (X - M)$ represents global macroeconomic output.\n3. **Important Checkpoint**: Always verify boundary conditions and edge cases before executing full models.\n\n*Bookmark these notes in your revision panel!*${apiKeyNotice}`;
+        } 
+        else if (query.includes("hello") || query.includes("hi") || query.includes("hey")) {
+          aiText = `### 👋 Welcome to Scholar Assistant!\n\nI am your dedicated academic AI helper. You can ask me to:\n* **Analyze PDFs**: Upload a research paper or note set, and ask me specific questions.\n* **Summarize**: Get high-level reviews of complicated topics.\n* **Study Guide**: Generate quick notes or revision cheat-sheets.\n\nHow can I help you with your studies today?${apiKeyNotice}`;
+        }
+        else {
+          const keyword = text.split(" ").slice(-2).join(" ").replace(/[?.!]/g, "");
+          aiText = `### 💡 Academic Response on "${text.length > 35 ? text.substring(0, 35) + "..." : text}"\n\nI have parsed your question regarding ${keyword ? `*${keyword}*` : "this topic"} and scanned our local scholar catalog:\n\n* **Overview**: The topic involves fundamental principles where variables, structural configurations, and workflows are highly correlated. Proper application of these techniques ensures optimized outputs.\n* **Academic Reference**: *Academic Library Archives, Section 4.C (2024)*.\n* **Recommended Focus**: Study the foundational abstractions and check out the related past papers in the main dashboard.\n\nWhat else can I clarify for you? I can summarize this, write notes, or parse another document!${apiKeyNotice}`;
+        }
+      }
     }
 
     // 3. Save AI message

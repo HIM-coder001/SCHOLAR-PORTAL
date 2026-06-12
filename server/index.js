@@ -15,6 +15,7 @@ const authRoutes = require("./routes/auth");
 const paperRoutes = require("./routes/papers");
 const chatRoutes = require("./routes/chats");
 const noteRoutes = require("./routes/notes");
+const projectRoutes = require("./routes/projects");
 const paymentRoutes = require("./routes/payment");
 
 // Routes Registration
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/papers", paperRoutes);
 app.use("/api/chats", chatRoutes);
 app.use("/api/notes", noteRoutes);
+app.use("/api/projects", projectRoutes);
 app.use("/api/payment", paymentRoutes);
 
 // Health Check
@@ -123,7 +125,7 @@ const seedDatabase = async () => {
 mongoose
   .connect(MONGODB_URI)
   .then(async () => {
-    console.log("Connected to MongoDB successfully at");
+    console.log("Connected to MongoDB successfully");
     await seedDatabase();
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
