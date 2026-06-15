@@ -13,6 +13,8 @@ import {
   LogOut,
   Menu,
   X,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 // Graduation Cap SVG icon — matching Navbar
@@ -29,6 +31,21 @@ const Sidebar = () => {
   const location = useLocation();
   const currentPath = location.pathname;
   const [open, setOpen] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+
+  // Toggle document theme class when state updates
+  useEffect(() => {
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === "light" ? "dark" : "light");
+  };
 
   // Close drawer when route changes on mobile
   useEffect(() => {
@@ -77,6 +94,37 @@ const Sidebar = () => {
         </div>
       </Link>
 
+      {/* Segmented Theme Switcher */}
+      <div className="bg-gray-100 dark:bg-slate-800/60 p-3 rounded-2xl mb-8 border border-gray-200/30 dark:border-slate-850">
+        <p className="text-[9px] font-extrabold text-gray-450 dark:text-slate-500 uppercase tracking-widest mb-2 px-1">
+          Interface Theme
+        </p>
+        <div className="flex gap-1.5 bg-gray-50 dark:bg-slate-900/60 p-1 rounded-xl border border-gray-200/50 dark:border-slate-800">
+          <button
+            onClick={() => setTheme("light")}
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-bold transition duration-200 cursor-pointer ${
+              theme === "light"
+                ? "bg-white text-[#004D40] shadow-sm"
+                : "text-gray-400 hover:text-gray-650 dark:hover:text-slate-350"
+            }`}
+          >
+            <Sun size={14} className={theme === "light" ? "text-amber-500" : ""} />
+            <span>Light</span>
+          </button>
+          <button
+            onClick={() => setTheme("dark")}
+            className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-bold transition duration-200 cursor-pointer ${
+              theme === "dark"
+                ? "bg-slate-800 text-white shadow-sm"
+                : "text-gray-400 hover:text-gray-650 dark:hover:text-slate-350"
+            }`}
+          >
+            <Moon size={14} className={theme === "dark" ? "text-indigo-400" : ""} />
+            <span>Dark</span>
+          </button>
+        </div>
+      </div>
+
       {/* Nav Links */}
       <nav className="flex-1 space-y-1">
         {links.map((link) => {
@@ -89,7 +137,7 @@ const Sidebar = () => {
               className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-bold transition duration-200 cursor-pointer ${
                 isActive
                   ? "bg-[#004D40] text-white shadow-md shadow-emerald-950/10"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                  : "text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
               <Icon size={20} className={isActive ? "text-white" : "text-gray-400"} />
@@ -100,7 +148,7 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer Links */}
-      <div className="border-t border-gray-200/80 pt-5 space-y-1">
+      <div className="border-t border-gray-200/80 dark:border-slate-800 pt-5 space-y-1">
         {[
           { label: "Profile",  path: "/profile",  Icon: User },
           { label: "Settings", path: "/settings", Icon: Settings },
@@ -111,7 +159,7 @@ const Sidebar = () => {
             className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-bold transition duration-200 cursor-pointer ${
               currentPath === path
                 ? "bg-[#004D40] text-white"
-                : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                : "text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white"
             }`}
           >
             <Icon size={20} className="text-gray-400" />
@@ -119,10 +167,12 @@ const Sidebar = () => {
           </Link>
         ))}
 
+
+
         <Link
           to="/login"
           onClick={handleLogout}
-          className="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-bold text-rose-600 hover:bg-rose-50 transition duration-200 cursor-pointer"
+          className="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition duration-200 cursor-pointer"
         >
           <LogOut size={20} className="text-rose-400" />
           <span>Logout</span>
@@ -152,7 +202,7 @@ const Sidebar = () => {
 
       {/* ── Slide-in drawer (mobile) ── */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-[#f7faf7] border-r border-gray-200 flex flex-col py-8 px-5 z-40 font-sans transition-transform duration-300 ease-in-out shadow-2xl ${
+        className={`lg:hidden fixed top-0 left-0 h-full w-72 bg-[#f7faf7] dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col py-8 px-5 z-40 font-sans transition-transform duration-300 ease-in-out shadow-2xl ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -160,7 +210,7 @@ const Sidebar = () => {
         <button
           onClick={() => setOpen(false)}
           aria-label="Close menu"
-          className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition"
+          className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-500 flex items-center justify-center transition"
         >
           <X size={18} />
         </button>
@@ -169,7 +219,7 @@ const Sidebar = () => {
       </aside>
 
       {/* ── Permanent sidebar (desktop lg+) ── */}
-      <aside className="hidden lg:flex w-64 min-h-screen bg-[#f7faf7] border-r border-gray-200 flex-col py-8 px-5 fixed left-0 top-0 z-20 font-sans">
+      <aside className="hidden lg:flex w-64 min-h-screen bg-[#f7faf7] dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex-col py-8 px-5 fixed left-0 top-0 z-20 font-sans">
         <SidebarContent />
       </aside>
     </>

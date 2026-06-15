@@ -158,21 +158,21 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f4f7f5] flex font-sans text-gray-800">
+    <div className="min-h-screen bg-[#f4f7f5] dark:bg-slate-950 flex font-sans text-gray-800 dark:text-slate-100 transition-colors duration-200">
       <Sidebar />
 
       {/* Main Layout — lg: sidebar offset; mobile: full width */}
       <div className="lg:ml-64 flex-1 flex flex-col min-h-screen relative overflow-hidden">
         
         {/* Top Header */}
-        <header className="flex items-center justify-between px-6 md:px-10 py-4 bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-10">
+        <header className="flex items-center justify-between px-6 md:px-10 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 sticky top-0 z-10">
           {/* Search bar with ml-12 for mobile hamburger menu clearance */}
-          <div className="flex-1 max-w-lg flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-full px-5 py-2.5 ml-12 lg:ml-0 transition-shadow focus-within:shadow-md focus-within:border-[#004D40]/30">
+          <div className="flex-1 max-w-lg flex items-center gap-3 bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 rounded-full px-5 py-2.5 ml-12 lg:ml-0 transition-shadow focus-within:shadow-md focus-within:border-[#004D40]/30">
             <Search size={18} className="text-gray-400 shrink-0" />
             <input
               type="text"
               placeholder="Search resources, papers, or notes..."
-              className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full font-medium"
+              className="bg-transparent text-sm text-gray-700 dark:text-slate-200 placeholder-gray-400 outline-none w-full font-medium"
             />
             <Mic size={18} className="text-gray-400 shrink-0 cursor-pointer hover:text-[#004D40] transition" />
           </div>
@@ -181,7 +181,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-6">
             <button 
               onClick={() => triggerToast("You have no new notifications.")}
-              className="relative p-2.5 text-gray-500 hover:text-[#004D40] bg-gray-50 hover:bg-emerald-50 rounded-full transition cursor-pointer"
+              className="relative p-2.5 text-gray-500 dark:text-slate-400 hover:text-[#004D40] bg-gray-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-full transition cursor-pointer"
             >
               <Bell size={20} className="stroke-[2]" />
               <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
@@ -190,14 +190,14 @@ const Dashboard = () => {
             {/* User Meta Card */}
             <div className="hidden sm:flex items-center gap-3">
               <div className="text-right">
-                <h4 className="text-sm font-extrabold text-gray-900 font-outfit leading-none">
+                <h4 className="text-sm font-extrabold text-gray-900 dark:text-slate-100 font-outfit leading-none">
                   {fullName}
                 </h4>
-                <span className="text-xs font-bold text-[#004D40] tracking-wide mt-1 block">
+                <span className="text-xs font-bold text-[#004D40] dark:text-emerald-400 tracking-wide mt-1 block">
                   {userCourse}
                 </span>
               </div>
-              <Link to="/profile" className="w-11 h-11 rounded-full overflow-hidden border-2 border-gray-200 hover:border-[#004D40] shadow-sm transition cursor-pointer">
+              <Link to="/profile" className="w-11 h-11 rounded-full overflow-hidden border-2 border-gray-200 dark:border-slate-800 hover:border-[#004D40] shadow-sm transition cursor-pointer">
                 <img
                   src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
                   alt="Avatar"
@@ -214,11 +214,11 @@ const Dashboard = () => {
           {/* Dashboard Greeting Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
             <div>
-              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight font-outfit mb-3">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight font-outfit mb-3">
                 Academic Hub
               </h1>
-              <p className="text-base text-gray-600 font-medium max-w-2xl">
-                Welcome back, {fullName.split(" ")[0]}. You have <span className="text-[#004D40] font-bold">3 pending assignments</span> and <span className="text-[#004D40] font-bold">{papers.length} resource papers</span> logged in the library. Let's keep the momentum going.
+              <p className="text-base text-gray-600 dark:text-slate-400 font-medium max-w-2xl">
+                Welcome back, {fullName.split(" ")[0]}. You have <span className="text-[#004D40] dark:text-emerald-400 font-bold">3 pending assignments</span> and <span className="text-[#004D40] dark:text-emerald-400 font-bold">{papers.length} resource papers</span> logged in the library. Let's keep the momentum going.
               </p>
             </div>
             
@@ -238,12 +238,12 @@ const Dashboard = () => {
             <div className="xl:col-span-2 space-y-8">
               
               {/* AI Study Insights widget */}
-              <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/40 border border-emerald-100/80 rounded-[2rem] p-7 shadow-sm">
+              <div className="bg-gradient-to-br from-emerald-50/80 to-teal-50/40 dark:from-slate-900/50 dark:to-slate-900/20 border border-emerald-100/80 dark:border-slate-800 rounded-[2rem] p-7 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2.5 bg-white shadow-sm rounded-xl text-[#004D40]">
+                  <div className="p-2.5 bg-white dark:bg-slate-800 shadow-sm rounded-xl text-[#004D40] dark:text-emerald-400">
                     <Brain size={22} className="stroke-[2.2]" />
                   </div>
-                  <h3 className="text-sm font-extrabold uppercase tracking-widest text-[#004D40]">
+                  <h3 className="text-sm font-extrabold uppercase tracking-widest text-[#004D40] dark:text-emerald-450">
                     AI Study Insights
                   </h3>
                 </div>
@@ -251,25 +251,25 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   
                   {/* Focus Areas */}
-                  <div className="bg-white/80 backdrop-blur-sm border border-white rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition min-h-[150px]">
+                  <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white dark:border-slate-800 rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition min-h-[150px]">
                     <div>
-                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                      <h4 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                         Focus Areas
                       </h4>
-                      <p className="text-sm text-gray-800 leading-relaxed font-semibold">
-                        Your performance in <span className="text-amber-600">Cognitive Models</span> has dipped. Consider reviewing the 2023 Past Papers.
+                      <p className="text-sm text-gray-800 dark:text-slate-200 leading-relaxed font-semibold">
+                        Your performance in <span className="text-amber-600 dark:text-amber-400">Cognitive Models</span> has dipped. Consider reviewing the 2023 Past Papers.
                       </p>
                     </div>
                   </div>
 
                   {/* Schedule Optimization */}
-                  <div className="bg-white/80 backdrop-blur-sm border border-white rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition min-h-[150px]">
+                  <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-white dark:border-slate-800 rounded-3xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition min-h-[150px]">
                     <div>
-                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                      <h4 className="text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                         Optimal Time
                       </h4>
-                      <p className="text-sm text-gray-800 leading-relaxed font-semibold">
-                        You're most productive between <span className="text-[#004D40]">10 AM and 1 PM</span>. Schedule your deep reading then.
+                      <p className="text-sm text-gray-800 dark:text-slate-200 leading-relaxed font-semibold">
+                        You're most productive between <span className="text-[#004D40] dark:text-emerald-400">10 AM and 1 PM</span>. Schedule your deep reading then.
                       </p>
                     </div>
                   </div>
@@ -307,17 +307,17 @@ const Dashboard = () => {
               {/* Recommended For You Section */}
               <div>
                 <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-lg font-extrabold text-gray-900 font-outfit tracking-wide">
+                  <h3 className="text-lg font-extrabold text-gray-900 dark:text-slate-100 font-outfit tracking-wide">
                     Recommended for You
                   </h3>
-                  <Link to="/past-papers" className="text-sm font-bold text-[#004D40] hover:underline">View Library</Link>
+                  <Link to="/past-papers" className="text-sm font-bold text-[#004D40] dark:text-emerald-400 hover:underline">View Library</Link>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
                   {recommendedItems.map((item, idx) => (
                     <div 
                       key={idx} 
-                      className="bg-white border border-gray-200/60 rounded-[24px] overflow-hidden hover:shadow-xl hover:shadow-gray-200/50 hover:-translate-y-1 transition duration-300 flex flex-col justify-between group"
+                      className="bg-white dark:bg-slate-900 border border-gray-200/60 dark:border-slate-800 rounded-[24px] overflow-hidden hover:shadow-xl hover:shadow-gray-200/50 hover:-translate-y-1 transition duration-300 flex flex-col justify-between group"
                     >
                       <div className="relative overflow-hidden">
                         <img 
@@ -333,24 +333,24 @@ const Dashboard = () => {
                         )}
                       </div>
 
-                      <div className="p-5 flex-1 flex flex-col justify-between bg-white">
+                      <div className="p-5 flex-1 flex flex-col justify-between bg-white dark:bg-slate-900">
                         <div>
-                          <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-widest block mb-2">
+                          <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-2">
                             {item.category}
                           </span>
-                          <h4 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2">
+                          <h4 className="text-sm font-bold text-gray-900 dark:text-slate-200 leading-snug line-clamp-2">
                             {item.title}
                           </h4>
                         </div>
 
-                        <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
-                          <span className="text-xs font-bold text-gray-500">
+                        <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100 dark:border-slate-800">
+                          <span className="text-xs font-bold text-gray-500 dark:text-slate-400">
                             {item.info}
                           </span>
                           
                           <button 
                             onClick={() => triggerToast(`Saved "${item.title}" to library.`)}
-                            className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-[#004D40] text-gray-500 hover:text-white rounded-full transition cursor-pointer"
+                            className="w-8 h-8 flex items-center justify-center bg-gray-50 dark:bg-slate-800 hover:bg-[#004D40] text-gray-500 dark:text-slate-400 hover:text-white rounded-full transition cursor-pointer"
                           >
                             {item.iconType === "avatars" && <Bookmark size={14} className="stroke-[2.5]" />}
                             {item.iconType === "play" && <Play size={14} className="stroke-[2.5] ml-0.5" />}
@@ -365,12 +365,12 @@ const Dashboard = () => {
               </div>
 
               {/* Trending Past Papers */}
-              <div className="bg-white border border-gray-200/60 rounded-[2rem] p-8 shadow-sm">
+              <div className="bg-white dark:bg-slate-900 border border-gray-200/60 dark:border-slate-800 rounded-[2rem] p-8 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-extrabold text-gray-900 font-outfit tracking-wide">
+                  <h3 className="text-lg font-extrabold text-gray-900 dark:text-slate-100 font-outfit tracking-wide">
                     Trending Past Papers
                   </h3>
-                  <Link to="/past-papers" className="text-sm font-bold text-[#004D40] hover:underline">Explore All</Link>
+                  <Link to="/past-papers" className="text-sm font-bold text-[#004D40] dark:text-emerald-400 hover:underline">Explore All</Link>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -378,30 +378,30 @@ const Dashboard = () => {
                     <div 
                       key={paper._id} 
                       onClick={() => triggerToast(`Viewing syllabus module for "${paper.title}" (${paper.module})...`)}
-                      className="group flex items-center justify-between p-5 rounded-3xl bg-gray-50 hover:bg-[#004D40]/5 border border-transparent hover:border-[#004D40]/20 transition duration-300 cursor-pointer"
+                      className="group flex items-center justify-between p-5 rounded-3xl bg-gray-50 dark:bg-slate-800/40 hover:bg-[#004D40]/5 border border-transparent dark:border-slate-800/50 hover:border-[#004D40]/20 transition duration-300 cursor-pointer"
                     >
                       <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl font-black text-gray-400 group-hover:text-[#004D40] group-hover:shadow-md transition">
+                        <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-xl font-black text-gray-400 dark:text-slate-500 group-hover:text-[#004D40] group-hover:shadow-md transition">
                           0{i + 1}
                         </div>
                         <div>
-                          <h4 className="text-sm font-bold text-gray-900 group-hover:text-[#004D40] transition">
+                          <h4 className="text-sm font-bold text-gray-900 dark:text-slate-205 group-hover:text-[#004D40] transition">
                             {paper.title}
                           </h4>
-                          <p className="text-xs text-gray-500 font-medium mt-1">
+                          <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mt-1">
                             {paper.module} • {paper.semester}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="text-gray-300 group-hover:text-[#004D40] transition p-2 bg-white rounded-full shadow-sm">
+                      <div className="text-gray-300 dark:text-slate-500 group-hover:text-[#004D40] transition p-2 bg-white dark:bg-slate-800 rounded-full shadow-sm">
                         <TrendingUp size={16} className="stroke-[2.5]" />
                       </div>
                     </div>
                   ))}
 
                   {papers.length === 0 && (
-                    <div className="col-span-2 text-center p-10 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 text-sm text-gray-500 font-bold">
+                    <div className="col-span-2 text-center p-10 bg-gray-50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-slate-800 text-sm text-gray-500 dark:text-slate-400 font-bold">
                       No papers loaded from server database yet.
                     </div>
                   )}
@@ -414,12 +414,12 @@ const Dashboard = () => {
             <div className="space-y-8">
               
               {/* Recent Downloads widget */}
-              <div className="bg-white border border-gray-200/60 rounded-[2rem] p-7 shadow-sm">
+              <div className="bg-white dark:bg-slate-900 border border-gray-200/60 dark:border-slate-800 rounded-[2rem] p-7 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-base font-extrabold text-gray-900 font-outfit tracking-wide">
+                  <h3 className="text-base font-extrabold text-gray-900 dark:text-slate-100 font-outfit tracking-wide">
                     Recent Downloads
                   </h3>
-                  <Link to="/downloads" className="text-xs font-bold text-[#004D40] uppercase tracking-wider hover:underline">
+                  <Link to="/downloads" className="text-xs font-bold text-[#004D40] dark:text-emerald-400 uppercase tracking-wider hover:underline">
                     View All
                   </Link>
                 </div>
@@ -429,16 +429,16 @@ const Dashboard = () => {
                     <div 
                       key={idx} 
                       onClick={() => triggerToast(`Opening local file "${item.title}"...`)}
-                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 border border-gray-100 transition duration-200 cursor-pointer group"
+                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-800/50 border border-gray-100 dark:border-slate-800 transition duration-200 cursor-pointer group"
                     >
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${item.iconBg} ${item.iconColor} font-black text-sm shadow-sm group-hover:scale-105 transition-transform`}>
                         {item.ext}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-gray-800 truncate group-hover:text-[#004D40] transition">
+                        <h4 className="text-sm font-bold text-gray-800 dark:text-slate-205 truncate group-hover:text-[#004D40] transition">
                           {item.title}
                         </h4>
-                        <p className="text-xs text-gray-500 font-medium mt-1">
+                        <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mt-1">
                           {item.details}
                         </p>
                       </div>
@@ -447,14 +447,14 @@ const Dashboard = () => {
 
                   {/* Active downloading indicator */}
                   <div className="flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed border-[#004D40]/30 bg-emerald-50/30">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-white text-[#004D40] shadow-sm">
-                      <div className="w-5 h-5 border-2 border-[#004D40] border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-white dark:bg-slate-800 text-[#004D40] dark:text-emerald-450 shadow-sm">
+                      <div className="w-5 h-5 border-2 border-[#004D40] dark:border-emerald-450 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-gray-900 truncate">
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-slate-200 truncate">
                         Downloading...
                       </h4>
-                      <p className="text-xs text-[#004D40] font-bold mt-1">
+                      <p className="text-xs text-[#004D40] dark:text-emerald-450 font-bold mt-1">
                         Sociology_Module_5.zip
                       </p>
                     </div>
@@ -463,12 +463,12 @@ const Dashboard = () => {
               </div>
 
               {/* Recently Added Notes widget */}
-              <div className="bg-white border border-gray-200/60 rounded-[2rem] p-7 shadow-sm">
+              <div className="bg-white dark:bg-slate-900 border border-gray-200/60 dark:border-slate-800 rounded-[2rem] p-7 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-base font-extrabold text-gray-900 font-outfit tracking-wide">
+                  <h3 className="text-base font-extrabold text-gray-900 dark:text-slate-100 font-outfit tracking-wide">
                     Recent Notes
                   </h3>
-                  <Link to="/notes" className="text-xs font-bold text-[#004D40] uppercase tracking-wider hover:underline">
+                  <Link to="/notes" className="text-xs font-bold text-[#004D40] dark:text-emerald-400 uppercase tracking-wider hover:underline">
                     Manage Notes
                   </Link>
                 </div>
@@ -477,17 +477,17 @@ const Dashboard = () => {
                   {loadingNotes ? (
                     <div className="animate-pulse space-y-4">
                       {[1, 2].map((i) => (
-                        <div key={i} className="h-20 bg-gray-100 rounded-2xl"></div>
+                        <div key={i} className="h-20 bg-gray-100 dark:bg-slate-800 rounded-2xl"></div>
                       ))}
                     </div>
                   ) : notes.length > 0 ? (
                     notes.slice(0, 3).map((note) => (
                       <div 
                         key={note._id}
-                        className="p-4 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-white hover:border-gray-200 hover:shadow-md transition duration-300 group"
+                        className="p-4 rounded-2xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 hover:border-gray-200 dark:hover:border-slate-700 hover:shadow-md transition duration-300 group"
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-sm font-bold text-gray-900 line-clamp-1 group-hover:text-[#004D40] transition">
+                          <h4 className="text-sm font-bold text-gray-900 dark:text-slate-200 line-clamp-1 group-hover:text-[#004D40] transition">
                             {note.title}
                           </h4>
                           <button
@@ -500,21 +500,21 @@ const Dashboard = () => {
                             <Trash2 size={14} />
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 font-medium line-clamp-2 leading-relaxed mb-3">
+                        <p className="text-xs text-gray-500 dark:text-slate-400 font-medium line-clamp-2 leading-relaxed mb-3">
                           {note.content || "No content summary available."}
                         </p>
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
                           <Clock size={12} />
                           <span>{new Date(note.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center p-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center">
-                      <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-gray-400 mb-3">
+                    <div className="text-center p-8 bg-gray-50 dark:bg-slate-800/10 rounded-2xl border-2 border-dashed border-gray-200 dark:border-slate-800 flex flex-col items-center">
+                      <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm flex items-center justify-center text-gray-400 dark:text-slate-500 mb-3">
                         <FileText size={20} />
                       </div>
-                      <p className="text-sm text-gray-500 font-bold mb-3">No notes created yet.</p>
+                      <p className="text-sm text-gray-500 dark:text-slate-400 font-bold mb-3">No notes created yet.</p>
                       <Link to="/notes" className="text-xs font-extrabold text-[#004D40] bg-emerald-50 px-4 py-2 rounded-lg hover:bg-[#004D40] hover:text-white transition">
                         Create your first note
                       </Link>
