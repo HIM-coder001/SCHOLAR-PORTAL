@@ -52,46 +52,8 @@ const Register = () => {
     }
   };
 
-  const handleSocialRegister = async () => {
-    setRegError("");
-    const demoUser = {
-      fullName: "Alex Rivers",
-      email: "alex.rivers@university.edu",
-      password: "demo123456",
-      institution: "Stanford University",
-      course: "Computer Science",
-    };
-
-    try {
-      // Try register first
-      let response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(demoUser),
-      });
-
-      // If user already exists, login instead
-      if (!response.ok) {
-        response = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: demoUser.email, password: demoUser.password }),
-        });
-      }
-
-      const data = await response.json();
-      if (!response.ok) {
-        setRegError(data.message || "Social sign-up failed.");
-        return;
-      }
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      navigate("/dashboard", { replace: true });
-    } catch (error) {
-      console.error("Social Register Error:", error);
-      setRegError("Network error. Make sure the server is running.");
-    }
+  const handleOAuthSignIn = (provider) => {
+    window.location.href = `/api/auth/${provider}`;
   };
 
   return (
@@ -187,28 +149,28 @@ const Register = () => {
             )}
 
             {/* Social Actions */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
+             <div className="grid grid-cols-2 gap-4 mb-6">
               <button
                 type="button"
-                onClick={handleSocialRegister}
+                onClick={() => handleOAuthSignIn("google")}
                 className="flex items-center justify-center gap-2.5 border border-gray-200 hover:bg-gray-50 py-3 rounded-2xl text-xs font-bold text-gray-600 bg-white transition cursor-pointer shadow-sm"
               >
-                <svg className="w-4.5 h-4.5" viewBox="0 0 24 24">
-                  <path
-                    fill="#EA4335"
-                    d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.138 4.114-3.417 0-6.19-2.77-6.19-6.186 0-3.417 2.773-6.187 6.19-6.187 1.565 0 2.99.593 4.095 1.564l3.08-3.08C19.333 2.224 16.037 1 12.24 1 5.922 1 1 5.923 1 12.215S5.922 23.43 12.24 23.43c5.688 0 10.603-3.834 10.603-11.215 0-.648-.052-1.3-.156-1.93H12.24Z"
-                  />
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
                 </svg>
                 <span>Google</span>
               </button>
 
               <button
                 type="button"
-                onClick={handleSocialRegister}
+                onClick={() => handleOAuthSignIn("github")}
                 className="flex items-center justify-center gap-2.5 border border-gray-200 hover:bg-gray-50 py-3 rounded-2xl text-xs font-bold text-gray-600 bg-white transition cursor-pointer shadow-sm"
               >
-                <svg className="w-4.5 h-4.5 fill-currentColor" viewBox="0 0 24 24">
-                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.577.688.479C19.138 20.164 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                <svg className="w-5 h-5 shrink-0 fill-current text-gray-950" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
                 </svg>
                 <span>GitHub</span>
               </button>
