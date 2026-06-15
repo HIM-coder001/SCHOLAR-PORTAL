@@ -2,9 +2,13 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const authMiddleware = require("../middleware/auth");
+const rateLimiter = require("../middleware/rateLimiter");
+
+// Limit payment simulation push attempts to 5 per 5 minutes
+const mpesaLimiter = rateLimiter(5, 5 * 60 * 1000);
 
 // POST /api/payment/mpesa-push (simulates STK Push payment and credits the user)
-router.post("/mpesa-push", authMiddleware, async (req, res) => {
+router.post("/mpesa-push", authMiddleware, mpesaLimiter, async (req, res) => {
   try {
     const { phone, amount } = req.body;
 
