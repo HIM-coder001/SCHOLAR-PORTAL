@@ -12,4 +12,7 @@ const ProjectSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Index for query optimization
+ProjectSchema.index({ userId: 1 });
+
 module.exports = mongoose.model("Project", ProjectSchema);

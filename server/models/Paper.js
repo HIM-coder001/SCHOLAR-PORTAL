@@ -16,4 +16,9 @@ const PaperSchema = new mongoose.Schema({
   imageUrl: { type: String, default: "" },
 });
 
+// Indices for performance optimization
+PaperSchema.index({ module: 1 });
+PaperSchema.index({ title: 1 });
+PaperSchema.index({ instructor: 1 });
+
 module.exports = mongoose.model("Paper", PaperSchema);

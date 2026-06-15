@@ -26,6 +26,10 @@ app.use("/api/notes", noteRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/payment", paymentRoutes);
 
+// Global Error Handler
+const errorHandler = require("./middleware/errorHandler");
+app.use(errorHandler);
+
 // Health Check
 app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", database: mongoose.connection.readyState === 1 ? "connected" : "disconnected" });
