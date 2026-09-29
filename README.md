@@ -1,4 +1,4 @@
- # ScholarHub — Academic Portal
+ # ScholarHub - Academic Portal
 
 ScholarHub is a modern, database-driven academic portal designed to help college and university students access learning resources, organize study materials, and improve academic productivity through an intuitive digital platform.
 
